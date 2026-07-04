@@ -30,7 +30,6 @@
 		"./dist/styles.css"
 	],
 	"scripts": {
-		"prepare": "command -v husky >/dev/null 2>&1 && husky || true",
 		"dev": "vite --host 127.0.0.1",
 		"preview": "vite preview --host 127.0.0.1",
 		"build": "bun run util:types && bun run build:lib && bun run build:demo",
