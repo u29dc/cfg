@@ -28,6 +28,7 @@ if (!build.success) {
 }
 
 await copyFile('packages/vanilla/src/styles/cfg.css', 'dist/styles.css');
+await writeFile('dist/styles.css.d.ts', 'declare const stylesheet: string;\nexport default stylesheet;\n');
 await run('bunx', ['tsc', '-p', 'tsconfig.build.json']);
 const types = await readFile('dist/types/core/src/types.d.ts', 'utf8');
 await writeFile(
