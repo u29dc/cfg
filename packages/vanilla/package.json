@@ -1,0 +1,13 @@
+{
+	"name": "@u29dc/cfg-vanilla",
+	"version": "1.0.0",
+	"type": "module",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts",
+		"./styles.css": "./src/styles/cfg.css"
+	},
+	"dependencies": {
+		"@u29dc/cfg-core": "workspace:*"
+	}
+}

@@ -1,0 +1,57 @@
+{
+	"name": "cfg",
+	"version": "1.0.0",
+	"type": "module",
+	"private": false,
+	"workspaces": [
+		"packages/*"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/u29dc/cfg.git"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./styles.css": "./dist/styles.css"
+	},
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"README.md",
+		"docs"
+	],
+	"sideEffects": [
+		"./dist/styles.css"
+	],
+	"scripts": {
+		"prepare": "husky || true",
+		"dev": "vite --host 127.0.0.1",
+		"preview": "vite preview --host 127.0.0.1",
+		"build": "bun run util:types && bun run build:lib && bun run build:demo",
+		"build:lib": "bun scripts/build.ts",
+		"build:demo": "vite build",
+		"test": "bun test",
+		"test:browser": "playwright test",
+		"util:format": "biome format --write .",
+		"util:lint": "biome check . --max-diagnostics 500",
+		"util:types": "bunx tsgo --noEmit",
+		"util:test": "bun test",
+		"util:check": "STATUS=0; biome format . || STATUS=1; bun run util:lint || STATUS=1; bun run util:types || STATUS=1; bun run util:test || STATUS=1; bun run build || STATUS=1; exit $STATUS"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.2",
+		"@commitlint/cli": "^21.2.0",
+		"@commitlint/config-conventional": "^21.2.0",
+		"@playwright/test": "^1.61.1",
+		"@types/bun": "^1.3.14",
+		"@typescript/native-preview": "^7.0.0-dev.20260702.3",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.0.8",
+		"typescript": "^6.0.3",
+		"vite": "^8.1.3"
+	},
+	"dependencies": {}
+}

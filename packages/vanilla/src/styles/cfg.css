@@ -1,0 +1,316 @@
+.cfg-root {
+	position: fixed;
+	inset-block-start: 12px;
+	inset-inline-end: 12px;
+	z-index: 2147483000;
+	display: flex;
+	flex-direction: row-reverse;
+	align-items: flex-start;
+	gap: 8px;
+	font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 11px;
+	line-height: 1.2;
+	color: #d7dde4;
+	pointer-events: none;
+}
+
+.cfg-pane,
+.cfg-folder {
+	box-sizing: border-box;
+	contain: layout paint style;
+	user-select: none;
+}
+
+.cfg-pane {
+	inline-size: 288px;
+	max-inline-size: calc(100vw - 24px);
+	overflow: clip;
+	border: 1px solid #30363d;
+	border-radius: 6px;
+	background: #111418;
+	box-shadow: 0 12px 32px rgb(0 0 0 / 32%);
+	pointer-events: auto;
+}
+
+.cfg-folder {
+	overflow: clip;
+	border: 1px solid #27313b;
+	border-radius: 4px;
+	background: #11161c;
+}
+
+.cfg-pane__header,
+.cfg-folder__header {
+	box-sizing: border-box;
+	display: block;
+	inline-size: 100%;
+	min-block-size: 28px;
+	border: 0;
+	border-block-end: 1px solid #30363d;
+	background: #171b20;
+	color: #f1f4f8;
+	font: inherit;
+	font-weight: 650;
+	text-align: start;
+	padding: 0 10px;
+	cursor: pointer;
+}
+
+.cfg-folder__header {
+	min-block-size: 24px;
+	background: #151b22;
+}
+
+.cfg-pane__body,
+.cfg-folder__body {
+	display: grid;
+	gap: 6px;
+	padding: 6px;
+	background: #15191e;
+}
+
+[data-cfg-collapsed="true"] > .cfg-pane__body,
+[data-cfg-collapsed="true"] > .cfg-folder__body {
+	display: none;
+}
+
+.cfg-control {
+	display: grid;
+	grid-template-columns: minmax(72px, 0.85fr) minmax(0, 1.4fr);
+	gap: 8px;
+	align-items: center;
+	min-block-size: 24px;
+	color: #d7dde4;
+}
+
+.cfg-control__label {
+	overflow: hidden;
+	color: #9aa7b6;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cfg-control__field {
+	display: grid;
+	gap: 4px;
+	min-inline-size: 0;
+}
+
+.cfg-input,
+.cfg-select,
+.cfg-textarea,
+.cfg-button {
+	box-sizing: border-box;
+	inline-size: 100%;
+	min-block-size: 24px;
+	border: 1px solid #3a424c;
+	border-radius: 4px;
+	background: #0f141a;
+	color: #f1f4f8;
+	font: inherit;
+}
+
+.cfg-input,
+.cfg-select,
+.cfg-textarea {
+	padding: 0 6px;
+	user-select: text;
+}
+
+.cfg-textarea {
+	min-block-size: 56px;
+	padding-block: 5px;
+	resize: vertical;
+}
+
+.cfg-button {
+	background: #222832;
+	cursor: pointer;
+}
+
+.cfg-button:hover,
+.cfg-choice:hover {
+	background: #2a323d;
+}
+
+.cfg-button:disabled,
+.cfg-choice:disabled {
+	cursor: not-allowed;
+	opacity: 0.42;
+}
+
+.cfg-toggle {
+	inline-size: 16px;
+	block-size: 16px;
+}
+
+.cfg-range {
+	inline-size: 100%;
+	accent-color: #78a6ff;
+}
+
+.cfg-button-group,
+.cfg-choice-row,
+.cfg-palette,
+.cfg-vector {
+	display: grid;
+	gap: 4px;
+}
+
+.cfg-button-group,
+.cfg-choice-row--segmented,
+.cfg-choice-row--radio-group,
+.cfg-palette {
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(0, 1fr);
+}
+
+.cfg-choice-row--radio-grid {
+	grid-template-columns: repeat(var(--cfg-columns, 3), minmax(0, 1fr));
+}
+
+.cfg-choice-row--radio-grid[data-cfg-columns="2"] {
+	--cfg-columns: 2;
+}
+
+.cfg-choice-row--radio-grid[data-cfg-columns="3"] {
+	--cfg-columns: 3;
+}
+
+.cfg-choice-row--radio-grid[data-cfg-columns="4"] {
+	--cfg-columns: 4;
+}
+
+.cfg-choice {
+	min-block-size: 24px;
+	border: 1px solid #3a424c;
+	border-radius: 4px;
+	background: #18202a;
+	color: #d7dde4;
+	font: inherit;
+	cursor: pointer;
+}
+
+.cfg-choice[data-cfg-selected="true"],
+.cfg-swatch[data-cfg-selected="true"] {
+	border-color: #78a6ff;
+	color: #ffffff;
+}
+
+.cfg-vector {
+	grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+}
+
+.cfg-axis {
+	display: grid;
+	gap: 2px;
+	color: #7d8997;
+	font-size: 9px;
+	text-transform: uppercase;
+}
+
+.cfg-input--axis {
+	min-block-size: 22px;
+}
+
+.cfg-swatch,
+.cfg-color-picker,
+.cfg-file {
+	min-block-size: 24px;
+}
+
+.cfg-swatch {
+	display: grid;
+	place-items: center;
+	border: 1px solid #3a424c;
+	border-radius: 4px;
+	background: #0f141a;
+	padding: 2px;
+	cursor: pointer;
+}
+
+.cfg-swatch-canvas,
+.cfg-pad,
+.cfg-bezier,
+.cfg-graph,
+.cfg-profiler {
+	display: block;
+	inline-size: 100%;
+	border: 1px solid #29313a;
+	border-radius: 4px;
+	background: #0f141a;
+}
+
+.cfg-swatch-canvas {
+	inline-size: 18px;
+	block-size: 18px;
+}
+
+.cfg-pad,
+.cfg-bezier {
+	inline-size: 96px;
+	block-size: 96px;
+	touch-action: none;
+}
+
+.cfg-graph {
+	block-size: 42px;
+}
+
+.cfg-profiler {
+	block-size: 70px;
+}
+
+.cfg-readout,
+.cfg-graph-readout,
+.cfg-profiler-readout,
+.cfg-log {
+	overflow: hidden;
+	color: #c6d0dc;
+	font: inherit;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cfg-log {
+	max-block-size: calc(1.2em * attr(data-cfg-rows number, 4));
+	margin: 0;
+	white-space: pre;
+}
+
+.cfg-image-preview {
+	inline-size: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	border: 1px solid #29313a;
+	border-radius: 4px;
+	background: #0f141a;
+}
+
+.cfg-separator {
+	min-block-size: 1px;
+	border-block-start: 1px solid #30363d;
+}
+
+.cfg-button:focus-visible,
+.cfg-choice:focus-visible,
+.cfg-input:focus-visible,
+.cfg-select:focus-visible,
+.cfg-textarea:focus-visible,
+.cfg-pane__header:focus-visible,
+.cfg-folder__header:focus-visible {
+	outline: 1px solid #78a6ff;
+	outline-offset: -1px;
+}
+
+@media (max-width: 760px) {
+	.cfg-root {
+		inset-inline-start: 8px;
+		inset-inline-end: 8px;
+		flex-direction: column;
+	}
+
+	.cfg-pane {
+		inline-size: min(288px, calc(100vw - 16px));
+	}
+}
