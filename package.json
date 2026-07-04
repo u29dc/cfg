@@ -2,6 +2,7 @@
 	"name": "cfg",
 	"version": "1.0.0",
 	"type": "module",
+	"license": "MIT",
 	"private": false,
 	"workspaces": [
 		"packages/*"
@@ -24,7 +25,9 @@
 	"files": [
 		"dist",
 		"README.md",
-		"docs"
+		"docs",
+		"LICENSE",
+		"NOTICE.md"
 	],
 	"sideEffects": [
 		"./dist/styles.css"
