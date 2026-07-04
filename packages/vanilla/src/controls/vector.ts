@@ -119,6 +119,8 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 		this.field.append(this.#canvas, fields);
 		this.#x.addEventListener('input', () => this.#setField('x', this.#x.value));
 		this.#y.addEventListener('input', () => this.#setField('y', this.#y.value));
+		this.#x.addEventListener('change', () => this.emit('change'));
+		this.#y.addEventListener('change', () => this.emit('change'));
 		this.#canvas.addEventListener('pointerdown', (event) => this.#pointer(event));
 		this.cleanup(observeCanvas(this.#canvas, () => this.render()));
 		this.render();
@@ -169,15 +171,32 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 			this.emit('input');
 		};
 		const move = (pointer: PointerEvent) => update(pointer);
-		const up = (pointer: PointerEvent) => {
-			update(pointer);
-			this.#canvas.releasePointerCapture(pointer.pointerId);
+		let active = true;
+		const finish = (pointer: PointerEvent, commit: boolean) => {
+			if (!active) {
+				return;
+			}
+			active = false;
+			if (commit) {
+				update(pointer);
+			}
+			if (this.#canvas.hasPointerCapture(pointer.pointerId)) {
+				this.#canvas.releasePointerCapture(pointer.pointerId);
+			}
 			this.#canvas.removeEventListener('pointermove', move);
 			this.#canvas.removeEventListener('pointerup', up);
-			this.emit('change');
+			this.#canvas.removeEventListener('pointercancel', cancel);
+			this.#canvas.removeEventListener('lostpointercapture', cancel);
+			if (commit) {
+				this.emit('change');
+			}
 		};
+		const up = (pointer: PointerEvent) => finish(pointer, true);
+		const cancel = (pointer: PointerEvent) => finish(pointer, false);
 		this.#canvas.addEventListener('pointermove', move);
 		this.#canvas.addEventListener('pointerup', up, { once: true });
+		this.#canvas.addEventListener('pointercancel', cancel, { once: true });
+		this.#canvas.addEventListener('lostpointercapture', cancel, { once: true });
 		update(event);
 	}
 }
@@ -202,6 +221,8 @@ export class Interval<T extends Record<string, unknown>, K extends keyof T> exte
 		this.field.append(row);
 		this.#min.addEventListener('input', () => this.#update());
 		this.#max.addEventListener('input', () => this.#update());
+		this.#min.addEventListener('change', () => this.emit('change'));
+		this.#max.addEventListener('change', () => this.emit('change'));
 		this.render();
 	}
 
@@ -295,6 +316,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 			field.step = '0.01';
 			field.disabled = this.disabled;
 			field.addEventListener('input', () => this.#update());
+			field.addEventListener('change', () => this.emit('change'));
 			this.#inputs.push(field);
 			row.append(axis(this.owner.doc, label, field));
 		}
@@ -346,15 +368,32 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		};
 		this.#canvas.setPointerCapture(event.pointerId);
 		const move = (pointer: PointerEvent) => update(pointer);
-		const up = (pointer: PointerEvent) => {
-			update(pointer);
-			this.#canvas.releasePointerCapture(pointer.pointerId);
+		let active = true;
+		const finish = (pointer: PointerEvent, commit: boolean) => {
+			if (!active) {
+				return;
+			}
+			active = false;
+			if (commit) {
+				update(pointer);
+			}
+			if (this.#canvas.hasPointerCapture(pointer.pointerId)) {
+				this.#canvas.releasePointerCapture(pointer.pointerId);
+			}
 			this.#canvas.removeEventListener('pointermove', move);
 			this.#canvas.removeEventListener('pointerup', up);
-			this.emit('change');
+			this.#canvas.removeEventListener('pointercancel', cancel);
+			this.#canvas.removeEventListener('lostpointercapture', cancel);
+			if (commit) {
+				this.emit('change');
+			}
 		};
+		const up = (pointer: PointerEvent) => finish(pointer, true);
+		const cancel = (pointer: PointerEvent) => finish(pointer, false);
 		this.#canvas.addEventListener('pointermove', move);
 		this.#canvas.addEventListener('pointerup', up, { once: true });
+		this.#canvas.addEventListener('pointercancel', cancel, { once: true });
+		this.#canvas.addEventListener('lostpointercapture', cancel, { once: true });
 		update(event);
 	}
 

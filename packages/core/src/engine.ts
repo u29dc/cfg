@@ -16,6 +16,7 @@ export class Engine {
 	readonly #samplers = new Set<FrameSampler>();
 	readonly #profilers = new Set<FrameProfiler>();
 	#rafId = 0;
+	#running = false;
 	#disposed = false;
 
 	constructor(options: CfgOptions = {}) {
@@ -79,6 +80,9 @@ export class Engine {
 	renderFrame(time = this.frame.sample.time) {
 		this.assert();
 		for (const renderable of this.#renderables) {
+			if (this.#disposed) {
+				return;
+			}
 			renderable.renderFrame(time);
 		}
 	}
@@ -88,19 +92,28 @@ export class Engine {
 		if (this.scheduler !== 'internal') {
 			throw new Error("cfg.start() requires createCfg({ scheduler: 'internal' })");
 		}
-		if (this.#rafId !== 0) {
+		if (this.#running) {
 			return;
 		}
+		this.#running = true;
 		const tick = (time: number) => {
+			if (!this.#running || this.#disposed) {
+				this.#rafId = 0;
+				return;
+			}
+			this.#rafId = 0;
 			this.beginFrame(time);
 			this.endFrame();
 			this.renderFrame(time);
-			this.#rafId = this.#raf.request(tick);
+			if (this.#running && !this.#disposed) {
+				this.#rafId = this.#raf.request(tick);
+			}
 		};
 		this.#rafId = this.#raf.request(tick);
 	}
 
 	stop() {
+		this.#running = false;
 		if (this.#rafId !== 0) {
 			this.#raf.cancel(this.#rafId);
 			this.#rafId = 0;

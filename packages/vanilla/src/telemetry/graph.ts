@@ -65,14 +65,18 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		if (this.#paused) {
 			return;
 		}
+		let changed = false;
 		if (typeof value === 'number') {
-			this.#series[0]?.ring.push(value);
+			changed = pushSample(this.#series[0], value);
 		} else {
 			for (let index = 0; index < this.#series.length; index += 1) {
-				this.#series[index]?.ring.push(Number(value[index] ?? 0));
+				const next = value[index] === undefined ? 0 : Number(value[index]);
+				changed = pushSample(this.#series[index], next) || changed;
 			}
 		}
-		this.#dirty = true;
+		if (changed) {
+			this.#dirty = true;
+		}
 	}
 
 	clear() {
@@ -168,6 +172,14 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		ctx.setLineDash([]);
 		ctx.restore();
 	}
+}
+
+function pushSample(series: Series | undefined, value: number) {
+	if (!series || !Number.isFinite(value)) {
+		return false;
+	}
+	series.ring.push(value);
+	return true;
 }
 
 function yOf(value: number, min: number, max: number, canvasHeight: number) {

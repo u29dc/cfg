@@ -87,6 +87,7 @@ export class Pane implements PaneApi {
 	}
 
 	folder(label: string, options: FolderOptions = {}): Pane {
+		this.#assertLive();
 		const paneOptions: PaneOptions = { title: label };
 		if (options.id !== undefined) {
 			paneOptions.id = options.id;
@@ -233,12 +234,16 @@ export class Pane implements PaneApi {
 	}
 
 	refresh(): void {
+		if (this.#disposed) {
+			return;
+		}
 		for (const child of this.#children) {
 			child.refresh();
 		}
 	}
 
 	collapse(): void {
+		this.#assertLive();
 		if (this.#collapsed) {
 			return;
 		}
@@ -247,6 +252,7 @@ export class Pane implements PaneApi {
 	}
 
 	expand(): void {
+		this.#assertLive();
 		if (!this.#collapsed) {
 			return;
 		}
@@ -255,6 +261,7 @@ export class Pane implements PaneApi {
 	}
 
 	toggleCollapsed(): void {
+		this.#assertLive();
 		if (this.#collapsed) {
 			this.expand();
 		} else {
@@ -275,11 +282,15 @@ export class Pane implements PaneApi {
 			child.dispose();
 		}
 		this.#children.clear();
+		if (this.#parent) {
+			this.#parent.#children.delete(this);
+		}
 		this.#manager.removePane(this);
 		this.element.remove();
 	}
 
 	create(kind: string, requested?: string): string {
+		this.#assertLive();
 		return this.#manager.create(kind, requested);
 	}
 
@@ -302,12 +313,19 @@ export class Pane implements PaneApi {
 	}
 
 	#add<T extends Managed>(control: T): T {
+		this.#assertLive();
 		this.#children.add(control);
 		this.#body.append(control.element);
 		this.#manager.add(control);
 		control.refresh();
 		this.#invalidateHeight();
 		return control;
+	}
+
+	#assertLive() {
+		if (this.#disposed) {
+			throw new Error(`cfg pane "${this.id}" has been disposed`);
+		}
 	}
 
 	#syncCollapsed() {
@@ -424,17 +442,26 @@ export class Pane implements PaneApi {
 class TabGroup extends Base<string> implements TabApi {
 	readonly pages: Pane[] = [];
 	readonly #buttons: HTMLButtonElement[] = [];
+	readonly #disabled = new Set<string>();
 	readonly #values: string[];
 	#selected: string;
 
 	constructor(manager: Manager, parent: Pane, options: TabOptions) {
 		const items = tabItems(options);
-		const initial = options.initial ?? items[0]?.value;
+		const initial = options.initial ?? items.find((item) => !item.disabled)?.value;
 		if (initial === undefined) {
-			throw new Error('tab control requires at least one tab');
+			throw new Error('tab control requires at least one enabled tab');
 		}
 		super(parent, 'tab', options, initial);
 		this.#values = items.map((item) => item.value);
+		for (const item of items) {
+			if (item.disabled) {
+				this.#disabled.add(item.value);
+			}
+		}
+		if (this.#disabled.has(initial)) {
+			throw new Error(`tab control rejected disabled page "${initial}"`);
+		}
 		this.#selected = initial;
 		this.element.classList.add('cfg-tabs');
 
@@ -472,6 +499,9 @@ class TabGroup extends Base<string> implements TabApi {
 	set(value: string) {
 		if (!this.#values.includes(value)) {
 			throw new Error(`tab control rejected unknown page "${value}"`);
+		}
+		if (this.#disabled.has(value)) {
+			throw new Error(`tab control rejected disabled page "${value}"`);
 		}
 		this.#selected = value;
 		this.render();
@@ -537,15 +567,21 @@ function tabItems(options: TabOptions) {
 }
 
 function nextTabButton(buttons: readonly HTMLButtonElement[], index: number, key: string) {
-	let next = -1;
 	if (key === 'Home') {
-		next = 0;
-	} else if (key === 'End') {
-		next = buttons.length - 1;
-	} else if (key === 'ArrowLeft') {
-		next = Math.max(0, index - 1);
-	} else if (key === 'ArrowRight') {
-		next = Math.min(buttons.length - 1, index + 1);
+		return buttons.find((button) => !button.disabled);
 	}
-	return next === -1 ? undefined : buttons[next];
+	if (key === 'End') {
+		return [...buttons].reverse().find((button) => !button.disabled);
+	}
+	const direction = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : 0;
+	if (direction === 0) {
+		return undefined;
+	}
+	for (let next = index + direction; next >= 0 && next < buttons.length; next += direction) {
+		const button = buttons[next];
+		if (button && !button.disabled) {
+			return button;
+		}
+	}
+	return undefined;
 }

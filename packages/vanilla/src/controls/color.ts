@@ -199,6 +199,7 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 		event.preventDefault();
 		canvas.setPointerCapture(event.pointerId);
 		const bounds = canvas.getBoundingClientRect();
+		let active = true;
 		const sample = (pointer: PointerEvent) => {
 			update({
 				x: clamp((pointer.clientX - bounds.left) / Math.max(1, bounds.width), 0, 1),
@@ -206,15 +207,31 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 			});
 		};
 		const move = (pointer: PointerEvent) => sample(pointer);
-		const up = (pointer: PointerEvent) => {
-			sample(pointer);
-			canvas.releasePointerCapture(pointer.pointerId);
+		const finish = (pointer: PointerEvent, commit: boolean) => {
+			if (!active) {
+				return;
+			}
+			active = false;
+			if (commit) {
+				sample(pointer);
+			}
+			if (canvas.hasPointerCapture(pointer.pointerId)) {
+				canvas.releasePointerCapture(pointer.pointerId);
+			}
 			canvas.removeEventListener('pointermove', move);
 			canvas.removeEventListener('pointerup', up);
-			this.emit('change');
+			canvas.removeEventListener('pointercancel', cancel);
+			canvas.removeEventListener('lostpointercapture', cancel);
+			if (commit) {
+				this.emit('change');
+			}
 		};
+		const up = (pointer: PointerEvent) => finish(pointer, true);
+		const cancel = (pointer: PointerEvent) => finish(pointer, false);
 		canvas.addEventListener('pointermove', move);
 		canvas.addEventListener('pointerup', up, { once: true });
+		canvas.addEventListener('pointercancel', cancel, { once: true });
+		canvas.addEventListener('lostpointercapture', cancel, { once: true });
 		sample(event);
 	}
 

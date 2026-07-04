@@ -12,7 +12,7 @@ export class ProfileEntry {
 
 	constructor(label: string, history: number) {
 		this.label = label;
-		this.#values = new Float32Array(history);
+		this.#values = new Float32Array(historySize(history));
 	}
 
 	resetFrame() {
@@ -54,7 +54,7 @@ export class Profile {
 	#total = 0;
 
 	constructor(history: number = theme.metrics.profileHistory) {
-		this.#history = history;
+		this.#history = historySize(history);
 	}
 
 	beginFrame(frame: number) {
@@ -128,4 +128,8 @@ export class Profile {
 
 function clean(label: string) {
 	return label.trim().slice(0, theme.metrics.profileLabelMax) || 'section';
+}
+
+function historySize(value: number) {
+	return Math.max(1, Math.floor(Number.isFinite(value) ? value : theme.metrics.profileHistory));
 }

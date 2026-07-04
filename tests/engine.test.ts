@@ -70,6 +70,53 @@ describe('Engine', () => {
 		engine.stop();
 		expect(cancelled).toEqual([rafId]);
 	});
+
+	test('internal mode does not reschedule when stopped during a frame', () => {
+		const callbacks: ((time: number) => void)[] = [];
+		const cancelled: number[] = [];
+		let nextId = 0;
+		let engine!: Engine;
+		engine = new Engine({
+			scheduler: 'internal',
+			clock: () => 10,
+			raf: (next) => {
+				callbacks.push(next);
+				nextId += 1;
+				return nextId;
+			},
+			cancelRaf: (id) => cancelled.push(id),
+		});
+		engine.add(runtimeItem({ renderFrame: () => engine.stop() }));
+
+		engine.start();
+		expect(callbacks).toHaveLength(1);
+		callbacks.shift()?.(16);
+
+		expect(callbacks).toHaveLength(0);
+		expect(cancelled).toEqual([]);
+	});
+
+	test('internal mode does not reschedule when disposed during a frame', () => {
+		const callbacks: ((time: number) => void)[] = [];
+		let nextId = 0;
+		let engine!: Engine;
+		engine = new Engine({
+			scheduler: 'internal',
+			clock: () => 10,
+			raf: (next) => {
+				callbacks.push(next);
+				nextId += 1;
+				return nextId;
+			},
+		});
+		engine.add(runtimeItem({ renderFrame: () => engine.dispose() }));
+
+		engine.start();
+		callbacks.shift()?.(16);
+
+		expect(callbacks).toHaveLength(0);
+		expect(() => engine.add(runtimeItem({ id: 'after-dispose' }))).toThrow('cfg engine has been disposed');
+	});
 });
 
 describe('Settings', () => {
@@ -182,6 +229,23 @@ describe('Profile', () => {
 			['scroll', 3],
 			['motion', 5],
 		]);
+	});
+
+	test('clamps invalid history sizes to finite profile averages', () => {
+		for (const history of [0, -4, Number.NaN]) {
+			const profile = new Profile(history);
+			profile.beginFrame(1);
+			profile.begin('draw', 0);
+			profile.end('draw', 2);
+			profile.beginFrame(2);
+			profile.begin('draw', 2);
+			profile.end('draw', 6);
+
+			const entry = profile.snapshot().entries[0];
+			expect(entry?.latest).toBe(4);
+			expect(entry?.average).toBeGreaterThan(0);
+			expect(Number.isFinite(entry?.average)).toBe(true);
+		}
 	});
 });
 

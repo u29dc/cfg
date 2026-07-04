@@ -129,6 +129,7 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 		const origin = this.get();
 		const scale = pointerScale(this.#options, origin);
 		const start = event.clientX;
+		let active = true;
 		let dragging = false;
 		this.#number.setPointerCapture(event.pointerId);
 		const move = (pointer: PointerEvent) => {
@@ -148,18 +149,32 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 			this.#drag?.render(origin, next, scale, this.#format(next));
 			this.emit('input');
 		};
-		const up = (pointer: PointerEvent) => {
-			move(pointer);
-			this.#number?.releasePointerCapture(pointer.pointerId);
+		const finish = (pointer: PointerEvent, commit: boolean) => {
+			if (!active) {
+				return;
+			}
+			active = false;
+			if (commit) {
+				move(pointer);
+			}
+			if (this.#number?.hasPointerCapture(pointer.pointerId)) {
+				this.#number.releasePointerCapture(pointer.pointerId);
+			}
 			this.#number?.removeEventListener('pointermove', move);
 			this.#number?.removeEventListener('pointerup', up);
+			this.#number?.removeEventListener('pointercancel', cancel);
+			this.#number?.removeEventListener('lostpointercapture', cancel);
 			this.#drag?.hide();
-			if (dragging) {
+			if (commit && dragging) {
 				this.emit('change');
 			}
 		};
+		const up = (pointer: PointerEvent) => finish(pointer, true);
+		const cancel = (pointer: PointerEvent) => finish(pointer, false);
 		this.#number.addEventListener('pointermove', move);
 		this.#number.addEventListener('pointerup', up, { once: true });
+		this.#number.addEventListener('pointercancel', cancel, { once: true });
+		this.#number.addEventListener('lostpointercapture', cancel, { once: true });
 	}
 
 	#format(value: number) {

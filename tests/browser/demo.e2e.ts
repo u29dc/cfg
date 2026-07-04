@@ -190,6 +190,172 @@ test('vector canvases settle to full-width backing stores before interaction', a
 	}
 });
 
+test('committed interval edits and disposed panes behave correctly', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const root = document.createElement('div');
+		root.id = 'scratch-lifecycle-root';
+		document.body.append(root);
+		const cfg = demo.createCfg({ root, scheduler: 'external' });
+		const pane = cfg.pane({ id: 'scratch-lifecycle', title: 'Scratch' });
+		const state = { range: { min: 1, max: 2 } };
+		const range = pane.interval(state, 'range', { id: 'scratch-range', label: 'Range', min: 0, max: 10, step: 1 });
+		const graph = pane.graph({ id: 'scratch-finite-graph', label: 'Finite' });
+		graph.push(1);
+		graph.push(Number.NaN);
+		graph.push(Number.POSITIVE_INFINITY);
+		let changes = 0;
+		range.on('change', () => {
+			changes += 1;
+		});
+		const folder = pane.folder('Disposed', { id: 'scratch-disposed-folder' });
+		folder.dispose();
+		let disposedMessage = '';
+		try {
+			folder.button({ id: 'after-dispose', label: 'After dispose', action: () => undefined });
+		} catch (error) {
+			disposedMessage = error instanceof Error ? error.message : String(error);
+		}
+		(window as ScratchWindow).__cfgScratch = {
+			cfg,
+			changes: () => changes,
+			disposedMessage,
+			graph: () => graph.get(),
+		};
+	});
+
+	await page.locator('[data-cfg-id="scratch-range"] input').first().fill('4');
+	await page.locator('[data-cfg-id="scratch-range"] input').first().blur();
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgScratch?.changes())).toBe(1);
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgScratch?.graph())).toEqual([1]);
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgScratch?.disposedMessage ?? '')).toContain('has been disposed');
+	await page.evaluate(() => (window as ScratchWindow).__cfgScratch?.cfg.dispose());
+});
+
+test('disabled tabs are skipped by keyboard and rejected by API', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const root = document.createElement('div');
+		root.id = 'scratch-tabs-root';
+		document.body.append(root);
+		const cfg = demo.createCfg({ root, scheduler: 'external' });
+		const pane = cfg.pane({ id: 'scratch-tabs-pane', title: 'Tabs' });
+		const tab = pane.tab({
+			id: 'scratch-tabs',
+			label: 'Tabs',
+			tabs: [
+				{ label: 'One', value: 'one' },
+				{ label: 'Two', value: 'two', disabled: true },
+				{ label: 'Three', value: 'three' },
+			],
+			initial: 'one',
+		});
+		const changes: string[] = [];
+		tab.on('change', (value) => changes.push(String(value)));
+		(window as ScratchWindow).__cfgTabsScratch = {
+			cfg,
+			changes: () => changes,
+			selectDisabled: () => {
+				try {
+					tab.set('two');
+					return '';
+				} catch (error) {
+					return error instanceof Error ? error.message : String(error);
+				}
+			},
+		};
+	});
+
+	const buttons = page.locator('[data-cfg-id="scratch-tabs"] .cfg-tabs__nav button');
+	await expect(buttons.nth(1)).toBeDisabled();
+	await buttons.first().focus();
+	await page.keyboard.press('ArrowRight');
+	await expect(buttons.nth(2)).toBeFocused();
+	await expect(buttons.nth(2)).toHaveAttribute('aria-pressed', 'true');
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.changes())).toEqual(['three']);
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.selectDisabled())).toContain('rejected disabled page');
+	await page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.cfg.dispose());
+});
+
+test('pointer cancel cleans up drag interactions without committing', async ({ page }) => {
+	await page.goto('/');
+
+	const speed = page.locator('[data-cfg-id="speed"] .cfg-input--number');
+	const speedBox = await speed.boundingBox();
+	if (!speedBox) {
+		throw new Error('speed input bounds missing');
+	}
+	await page.mouse.move(speedBox.x + speedBox.width / 2, speedBox.y + speedBox.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(speedBox.x + speedBox.width / 2 + 80, speedBox.y + speedBox.height / 2);
+	await expect(page.locator('[data-cfg-id="speed"] .cfg-number-guide')).toBeVisible();
+	await speed.dispatchEvent('pointercancel', {
+		bubbles: true,
+		button: 0,
+		clientX: speedBox.x + speedBox.width / 2 + 80,
+		clientY: speedBox.y + speedBox.height / 2,
+		pointerId: 1,
+	});
+	await expect(page.locator('[data-cfg-id="speed"] .cfg-number-guide')).toBeHidden();
+	await page.mouse.up();
+
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const root = document.createElement('div');
+		root.id = 'scratch-pointer-root';
+		document.body.append(root);
+		const cfg = demo.createCfg({ root, scheduler: 'external' });
+		const pane = cfg.pane({ id: 'scratch-pointer-pane', title: 'Pointer' });
+		const state = { point: { x: 0, y: 0 }, easing: [0.25, 0.1, 0.25, 1] as [number, number, number, number] };
+		const pad = pane.xyPad(state, 'point', { id: 'scratch-pad', label: 'Pad', min: -1, max: 1, step: 0.01 });
+		const easing = pane.cubicBezier(state, 'easing', { id: 'scratch-bezier', label: 'Bezier' });
+		let padChanges = 0;
+		let bezierChanges = 0;
+		pad.on('change', () => {
+			padChanges += 1;
+		});
+		easing.on('change', () => {
+			bezierChanges += 1;
+		});
+		(window as ScratchWindow).__cfgPointerScratch = {
+			cfg,
+			changes: () => ({ pad: padChanges, bezier: bezierChanges }),
+		};
+	});
+
+	for (const id of ['scratch-pad', 'scratch-bezier']) {
+		const canvas = page.locator(`[data-cfg-id="${id}"] canvas`);
+		const box = await canvas.boundingBox();
+		if (!box) {
+			throw new Error(`${id} canvas bounds missing`);
+		}
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.25);
+		await canvas.dispatchEvent('pointercancel', {
+			bubbles: true,
+			button: 0,
+			clientX: box.x + box.width * 0.75,
+			clientY: box.y + box.height * 0.25,
+			pointerId: 1,
+		});
+		await page.mouse.up();
+	}
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgPointerScratch?.changes())).toEqual({ pad: 0, bezier: 0 });
+	await page.evaluate(() => (window as ScratchWindow).__cfgPointerScratch?.cfg.dispose());
+});
+
 test('palette, settings actions, bounded logs, and disposal work', async ({ page }) => {
 	await page.goto('/');
 
@@ -370,6 +536,7 @@ test('number inputs support elastic pointer drag adjustment', async ({ page }) =
 
 type DemoWindow = Window & {
 	__cfgDemo?: {
+		createCfg?: (options?: { root?: HTMLElement; scheduler?: 'external' | 'internal'; theme?: 'system' | 'light' | 'dark' }) => ScratchCfg;
 		state: {
 			accent?: unknown;
 			color?: unknown;
@@ -387,5 +554,52 @@ type DemoWindow = Window & {
 		snapshot: () => unknown;
 		frame: () => number;
 		workload: () => number;
+	};
+};
+
+type ScratchCfg = {
+	dispose: () => void;
+	pane: (options: { id: string; title: string }) => ScratchPane;
+};
+
+type ScratchPane = {
+	button: (options: { id?: string; label: string; action: () => void }) => unknown;
+	cubicBezier: (target: Record<string, unknown>, key: string, options: { id: string; label: string }) => ScratchControl;
+	dispose: () => void;
+	folder: (label: string, options?: { id?: string }) => ScratchPane;
+	graph: (options: { id: string; label: string }) => ScratchGraph;
+	interval: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
+	tab: (options: { id: string; label: string; tabs: { label: string; value: string; disabled?: boolean }[]; initial: string }) => ScratchTab;
+	xyPad: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
+};
+
+type ScratchControl = {
+	on: (event: 'input' | 'change', handler: (value: unknown) => void) => () => void;
+};
+
+type ScratchGraph = ScratchControl & {
+	get: () => readonly number[];
+	push: (value: number | readonly number[]) => void;
+};
+
+type ScratchTab = ScratchControl & {
+	set: (value: string) => void;
+};
+
+type ScratchWindow = Window & {
+	__cfgPointerScratch?: {
+		cfg: ScratchCfg;
+		changes: () => { bezier: number; pad: number };
+	};
+	__cfgScratch?: {
+		cfg: ScratchCfg;
+		changes: () => number;
+		disposedMessage: string;
+		graph: () => readonly number[];
+	};
+	__cfgTabsScratch?: {
+		cfg: ScratchCfg;
+		changes: () => string[];
+		selectDisabled: () => string;
 	};
 };

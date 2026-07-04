@@ -30,7 +30,7 @@
 		"./dist/styles.css"
 	],
 	"scripts": {
-		"prepare": "husky || true",
+		"prepare": "command -v husky >/dev/null 2>&1 && husky || true",
 		"dev": "vite --host 127.0.0.1",
 		"preview": "vite preview --host 127.0.0.1",
 		"build": "bun run util:types && bun run build:lib && bun run build:demo",
@@ -39,11 +39,12 @@
 		"bench": "bun benchmarks/run.ts",
 		"test": "bun test",
 		"test:browser": "bun run build:demo && playwright test",
+		"test:package": "bun scripts/smoke.ts",
 		"util:format": "biome format --write .",
 		"util:lint": "biome check . --max-diagnostics 500",
 		"util:types": "bunx tsgo --noEmit",
 		"util:test": "bun test",
-		"util:check": "STATUS=0; biome format . || STATUS=1; bun run util:lint || STATUS=1; bun run util:types || STATUS=1; bun run util:test || STATUS=1; bun run build || STATUS=1; exit $STATUS"
+		"util:check": "STATUS=0; biome format . || STATUS=1; bun run util:lint || STATUS=1; bun run util:types || STATUS=1; bun run util:test || STATUS=1; bun run build || STATUS=1; bun run test:package || STATUS=1; exit $STATUS"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.2",

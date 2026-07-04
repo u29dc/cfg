@@ -31,6 +31,7 @@ interface DemoState extends Record<string, unknown> {
 declare global {
 	interface Window {
 		__cfgDemo?: {
+			createCfg: typeof createCfg;
 			state: DemoState;
 			theme: () => ThemeMode;
 			setTheme: (theme: ThemeMode) => void;
@@ -232,6 +233,7 @@ const profiler = telemetry.profiler({ id: 'profiler', label: 'Profiler' });
 const log = telemetry.logMonitor({ id: 'log', label: 'Log', rows: 5, bufferSize: 20 });
 telemetry.monitor({ id: 'work', label: 'Work ms', get: () => workloadCost, format: (value) => `${value.toFixed(2)}ms` });
 window.__cfgDemo = {
+	createCfg,
 	state,
 	theme: () => cfg.getTheme(),
 	setTheme: (next) => {
