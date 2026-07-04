@@ -106,7 +106,6 @@ export class Pane implements PaneApi {
 		const pane = this.folder(options.label ?? 'Tabs', folderOptions);
 		pane.element.classList.add('cfg-tabs');
 		const nav = el(this.doc, 'div', 'cfg-tabs__nav');
-		nav.setAttribute('role', 'tablist');
 		const tabs = options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : item));
 		const selectedValue = options.initial ?? tabs[0]?.value;
 		for (let index = 0; index < tabs.length; index += 1) {
@@ -120,9 +119,7 @@ export class Pane implements PaneApi {
 			button.disabled = item.disabled ?? false;
 			button.textContent = item.label;
 			button.dataset['cfgValue'] = item.value;
-			button.setAttribute('role', 'tab');
 			button.setAttribute('aria-pressed', String(item.value === selectedValue));
-			button.setAttribute('aria-selected', String(item.value === selectedValue));
 			button.dataset['cfgSelected'] = String(item.value === selectedValue);
 			button.addEventListener('click', () => {
 				selectTab(nav, item.value);
@@ -337,6 +334,7 @@ export class Pane implements PaneApi {
 		this.#children.add(control);
 		this.#body.append(control.element);
 		this.#manager.add(control);
+		control.refresh();
 		this.#invalidateHeight();
 		return control;
 	}
@@ -440,7 +438,7 @@ export class Pane implements PaneApi {
 
 function motion(nested: boolean): KeyframeAnimationOptions {
 	return {
-		duration: prefersReducedMotion() ? 0 : nested ? 110 : 150,
+		duration: prefersReducedMotion() ? 0 : nested ? 80 : 150,
 		easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
 	};
 }
@@ -455,7 +453,6 @@ function selectTab(nav: HTMLElement, value: string) {
 		const selected = tab.dataset['cfgValue'] === value;
 		tab.dataset['cfgSelected'] = String(selected);
 		tab.setAttribute('aria-pressed', String(selected));
-		tab.setAttribute('aria-selected', String(selected));
 	}
 }
 

@@ -3,6 +3,7 @@ import { axis, clamp, el, number, snap, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { Binding, bezier, interval, vector } from '../binding';
 import { fit, observeCanvas } from '../utils/canvas';
+import { numberInput } from './input';
 
 const padSize = theme.metrics.padSize;
 const bezierSize = theme.metrics.bezierSize;
@@ -50,10 +51,7 @@ export class VectorControl<T extends Record<string, unknown>, K extends keyof T>
 	}
 
 	#axis(axisName: string) {
-		const input = this.owner.doc.createElement('input');
-		input.type = 'number';
-		input.className = 'cfg-input cfg-input--axis';
-		input.step = String(this.#options.step ?? 0.01);
+		const input = numberInput(this.owner.doc, undefined, this.#axisOptions(axisName), 'cfg-input cfg-input--axis');
 		input.disabled = this.disabled;
 		this.#inputs.set(axisName, input);
 		input.addEventListener('input', () => {
@@ -391,11 +389,7 @@ function handlePoint(bounds: { left: number; top: number; width: number; height:
 }
 
 function input(doc: Document) {
-	const node = doc.createElement('input');
-	node.type = 'number';
-	node.className = 'cfg-input cfg-input--axis';
-	node.step = '0.01';
-	return node;
+	return numberInput(doc, undefined, { step: 0.01 }, 'cfg-input cfg-input--axis');
 }
 
 function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: VectorOptions) {

@@ -65,7 +65,7 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 			this.field.append(numberField.element);
 		}
 		if (mode !== 'number') {
-			this.#range = field(owner.doc, `${this.id}-range`, 'range', options);
+			this.#range = rangeInput(owner.doc, `${this.id}-range`, options);
 			this.field.prepend(this.#range);
 		}
 
@@ -215,24 +215,40 @@ export class Textual<T extends Record<string, unknown>, K extends RecordKey<T>> 
 	}
 }
 
-function field(doc: Document, id: string, type: 'number' | 'range', options: NumberOptions) {
+export function numberInput(doc: Document, id: string | undefined, options: NumberOptions, className = 'cfg-input cfg-input--number') {
 	const input = doc.createElement('input');
-	input.id = id;
-	input.type = type === 'number' ? 'text' : type;
-	input.className = type === 'range' ? 'cfg-range' : 'cfg-input cfg-input--number';
-	input.disabled = options.disabled ?? false;
-	if (type === 'number') {
-		input.inputMode = 'decimal';
-		input.autocomplete = 'off';
-		input.spellcheck = false;
+	if (id !== undefined) {
+		input.id = id;
 	}
+	input.type = 'text';
+	input.className = className;
+	input.disabled = options.disabled ?? false;
+	input.inputMode = 'decimal';
+	input.autocomplete = 'off';
+	input.spellcheck = false;
 	if (options.min !== undefined) {
 		input.min = String(options.min);
 	}
 	if (options.max !== undefined) {
 		input.max = String(options.max);
 	}
-	input.step = String(options.step ?? (type === 'range' ? 0.01 : 'any'));
+	input.step = String(options.step ?? 'any');
+	return input;
+}
+
+function rangeInput(doc: Document, id: string, options: NumberOptions) {
+	const input = doc.createElement('input');
+	input.id = id;
+	input.type = 'range';
+	input.className = 'cfg-range';
+	input.disabled = options.disabled ?? false;
+	if (options.min !== undefined) {
+		input.min = String(options.min);
+	}
+	if (options.max !== undefined) {
+		input.max = String(options.max);
+	}
+	input.step = String(options.step ?? 0.01);
 	return input;
 }
 
@@ -251,7 +267,7 @@ interface NumberDragHandle {
 function createNumberField(doc: Document, id: string, options: NumberOptions): NumberField {
 	const element = doc.createElement('div');
 	element.className = 'cfg-number';
-	const input = field(doc, id, 'number', options);
+	const input = numberInput(doc, id, options);
 	const guide = doc.createElementNS(svgNs, 'svg');
 	guide.classList.add('cfg-number-guide');
 	guide.setAttribute('aria-hidden', 'true');

@@ -4,6 +4,7 @@ import { Base, type Owner } from '../base';
 import { Binding } from '../binding';
 import { fit } from '../utils/canvas';
 import { color, css, format, hsvFromRgb, parseColor, type Rgba, rgba, rgbFromHsv, swatch } from '../utils/color';
+import { numberInput } from './input';
 
 export class ColorControl<T extends Record<string, unknown>, K extends keyof T> extends Base<string> {
 	readonly #binding: Binding<string>;
@@ -293,12 +294,7 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 }
 
 function channel(doc: Document, label: string, max: number, step: number) {
-	const node = doc.createElement('input');
-	node.type = 'number';
-	node.className = 'cfg-input cfg-input--channel';
-	node.min = '0';
-	node.max = String(max);
-	node.step = String(step);
+	const node = numberInput(doc, undefined, { min: 0, max, step }, 'cfg-input cfg-input--channel');
 	node.inputMode = step === 1 ? 'numeric' : 'decimal';
 	node.ariaLabel = label;
 	return node;
