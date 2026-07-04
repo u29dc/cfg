@@ -63,6 +63,9 @@ export function mountPublicExample(root: HTMLElement): () => void {
 	basics.radioGrid(state, 'placement', { columns: 2, options: placementOptions });
 	basics.radioGroup(state, 'mode', { options: modeOptions });
 
+	const tabs = controls.tab({ id: 'views', label: 'Views', tabs: ['Main', 'Debug'], initial: 'Main' });
+	tabs.monitor({ id: 'view-mode', label: 'Mode', get: () => state.mode });
+
 	const spatial = controls.folder('Spatial');
 	spatial.point(state, 'point', { min: -1, max: 1, step: 0.01 });
 	spatial.xyPad(state, 'point', { min: -1, max: 1, step: 0.01 });

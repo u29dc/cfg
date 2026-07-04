@@ -75,6 +75,19 @@ test('representative controls mutate bound and visible state', async ({ page }) 
 		)
 		.toBeGreaterThan(0);
 
+	await page.locator('[data-cfg-id="rotation"] input').nth(3).fill('0.5');
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const demo = (window as DemoWindow).__cfgDemo;
+				if (!demo) {
+					throw new Error('cfg demo probe missing');
+				}
+				return demo.state.rotation.w;
+			}),
+		)
+		.toBe(0.5);
+
 	await page.locator('[data-cfg-id="fake-work"] input[type="checkbox"]').check();
 	await expect
 		.poll(() =>
@@ -103,6 +116,9 @@ test('theme propagation and custom controls render without native chrome', async
 	await page.locator('[data-cfg-id="color"] .cfg-color-toggle').click();
 	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeVisible();
 	await expect(page.locator('[data-cfg-id="easing"] canvas.cfg-bezier')).toBeVisible();
+	await expect(page.locator('[data-cfg-id="views"] .cfg-tabs__nav button').first()).toHaveAttribute('aria-selected', 'true');
+	await page.locator('[data-cfg-id="views"] .cfg-tabs__nav button', { hasText: 'Debug' }).click();
+	await expect(page.locator('[data-cfg-id="views"] .cfg-tabs__nav button', { hasText: 'Debug' })).toHaveAttribute('aria-selected', 'true');
 	for (const id of ['pad', 'easing']) {
 		const width = await page.locator(`[data-cfg-id="${id}"]`).evaluate((node, label) => {
 			const canvas = node.querySelector('canvas');
@@ -126,6 +142,71 @@ test('theme propagation and custom controls render without native chrome', async
 	const selected = await page.locator('[data-cfg-id="mode"] button[aria-pressed="true"]').evaluate((node) => getComputedStyle(node).backgroundColor);
 	const unselected = await page.locator('[data-cfg-id="mode"] button', { hasText: 'calm' }).evaluate((node) => getComputedStyle(node).backgroundColor);
 	expect(selected).not.toBe(unselected);
+});
+
+test('palette, settings actions, bounded logs, and disposal work', async ({ page }) => {
+	await page.goto('/');
+
+	await page.locator('[data-cfg-id="accent"] .cfg-swatch').nth(2).click();
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const demo = (window as DemoWindow).__cfgDemo;
+				if (!demo) {
+					throw new Error('cfg demo probe missing');
+				}
+				return demo.state.accent;
+			}),
+		)
+		.toBe('#ff6b8b');
+
+	const speed = page.locator('[data-cfg-id="speed"] .cfg-input--number');
+	await speed.fill('2.5');
+	await speed.blur();
+	await page.locator('[data-cfg-id="save"] .cfg-button').click();
+	await speed.fill('3.5');
+	await speed.blur();
+	await page.locator('[data-cfg-id="settings"] .cfg-button', { hasText: 'Apply' }).click();
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const demo = (window as DemoWindow).__cfgDemo;
+				if (!demo) {
+					throw new Error('cfg demo probe missing');
+				}
+				return demo.state.speed;
+			}),
+		)
+		.toBe(2.5);
+	await page.locator('[data-cfg-id="settings"] .cfg-button', { hasText: 'Reset' }).click();
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const demo = (window as DemoWindow).__cfgDemo;
+				if (!demo) {
+					throw new Error('cfg demo probe missing');
+				}
+				return demo.state.speed;
+			}),
+		)
+		.toBe(1);
+
+	const lines = await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo) {
+			throw new Error('cfg demo probe missing');
+		}
+		for (let index = 0; index < 25; index += 1) {
+			demo.pushLog(`line ${index}`);
+		}
+		return demo.logLines();
+	});
+	expect(lines).toHaveLength(20);
+	expect(lines[0]).toBe('line 5');
+	expect(lines.at(-1)).toBe('line 24');
+
+	await page.evaluate(() => (window as DemoWindow).__cfgDemo?.dispose());
+	await expect(page.locator('.cfg-root')).toBeHidden();
 });
 
 test('pane collapse removes body from layout and expands back', async ({ page }) => {
@@ -232,12 +313,20 @@ test('number inputs support elastic pointer drag adjustment', async ({ page }) =
 type DemoWindow = Window & {
 	__cfgDemo?: {
 		state: {
+			accent?: unknown;
 			color?: unknown;
 			density?: unknown;
 			point: { x: number; y: number };
+			rotation: { x: number; y: number; z: number; w: number };
 			speed?: unknown;
 		};
+		applySettings: (snapshot: unknown) => void;
+		dispose: () => void;
 		setTheme?: (theme: 'system' | 'light' | 'dark') => void;
+		logLines: () => readonly string[];
+		pushLog: (message: string) => void;
+		resetSettings: () => void;
+		snapshot: () => unknown;
 		frame: () => number;
 		workload: () => number;
 	};

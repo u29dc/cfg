@@ -36,10 +36,16 @@ export class Settings {
 		if (!isSnapshot(value)) {
 			throw new Error('cfg settings import expected a version 1 snapshot');
 		}
-		for (const [id, setting] of this.#items) {
-			if (setting.serialize && Object.hasOwn(value.values, id)) {
-				setting.setUnknown(value.values[id]);
+		const applied: { setting: Setting; previous: unknown }[] = [];
+		try {
+			for (const [id, setting] of this.#items) {
+				if (setting.serialize && Object.hasOwn(value.values, id)) {
+					applySetting(applied, setting, value.values[id]);
+				}
 			}
+		} catch (error) {
+			rollback(applied);
+			throw error;
 		}
 	}
 
@@ -60,4 +66,18 @@ export function isSnapshot(value: unknown): value is SettingsSnapshot {
 		typeof (value as SettingsSnapshot).values === 'object' &&
 		(value as SettingsSnapshot).values !== null
 	);
+}
+
+function applySetting(applied: { setting: Setting; previous: unknown }[], setting: Setting, value: unknown) {
+	applied.push({ setting, previous: clone(setting.get()) });
+	setting.setUnknown(value);
+}
+
+function rollback(applied: { setting: Setting; previous: unknown }[]) {
+	for (let index = applied.length - 1; index >= 0; index -= 1) {
+		const entry = applied[index];
+		if (entry) {
+			entry.setting.setUnknown(entry.previous);
+		}
+	}
 }

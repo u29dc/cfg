@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { RuntimeItem } from '@u29dc/cfg-core';
 import { Engine, Profile, Ring, Settings } from '@u29dc/cfg-core';
+import { choice, options } from '../packages/vanilla/src/binding';
 
 describe('Engine', () => {
 	test('external mode samples frames without creating an internal RAF loop', () => {
@@ -95,6 +96,50 @@ describe('Settings', () => {
 		expect(value).toBe(4);
 		settings.reset();
 		expect(value).toBe(2);
+	});
+
+	test('rolls back settings when an imported value fails validation', () => {
+		let speed = 1;
+		let mode = 'normal';
+		const settings = new Settings();
+		settings.add(
+			runtimeItem({
+				id: 'speed',
+				get: () => speed,
+				setUnknown: (next) => {
+					speed = Number(next);
+				},
+				reset: () => {
+					speed = 1;
+				},
+			}),
+		);
+		settings.add(
+			runtimeItem({
+				id: 'mode',
+				get: () => mode,
+				setUnknown: (next) => {
+					mode = choice(next, options(['calm', 'normal', 'intense']));
+				},
+				reset: () => {
+					mode = 'normal';
+				},
+			}),
+		);
+
+		expect(() => settings.apply({ version: 1, generatedAt: 'test', values: { speed: 4, mode: 'broken' } })).toThrow('choice control rejected unknown value');
+		expect(speed).toBe(1);
+		expect(mode).toBe('normal');
+	});
+});
+
+describe('Choice binding', () => {
+	test('rejects unknown values unless explicitly allowed', () => {
+		const items = options<string>(['calm', 'normal', 'intense']);
+
+		expect(choice('normal', items)).toBe('normal');
+		expect(choice('debug', items, true)).toBe('debug');
+		expect(() => choice('debug', items)).toThrow('choice control rejected unknown value');
 	});
 });
 

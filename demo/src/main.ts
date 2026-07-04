@@ -34,6 +34,12 @@ declare global {
 			state: DemoState;
 			theme: () => ThemeMode;
 			setTheme: (theme: ThemeMode) => void;
+			snapshot: () => SettingsSnapshot;
+			applySettings: (snapshot: SettingsSnapshot) => void;
+			resetSettings: () => void;
+			pushLog: (message: string) => void;
+			logLines: () => readonly string[];
+			dispose: () => void;
 			frame: () => number;
 			workload: () => number;
 		};
@@ -131,6 +137,7 @@ let pulse = 0;
 let lastTime = 0;
 let workloadCost = 0;
 let hudKey = '';
+let disposed = false;
 const cfg = createCfg({ scheduler: 'external', theme: state.cfgTheme });
 
 const controls = cfg.pane({ id: 'runtime', title: 'Runtime' });
@@ -149,6 +156,9 @@ const choices = controls.folder('Choices');
 choices.segmented(state, 'mode', { id: 'mode', label: 'Mode', options: modeOptions });
 choices.select(state, 'density', { id: 'density', label: 'Density', options: densityOptions });
 choices.radioGrid(state, 'placement', { id: 'placement', label: 'Place', columns: 2, options: placementOptions });
+
+const views = controls.tab({ id: 'views', label: 'Views', tabs: ['Main', 'Debug'], initial: 'Main' });
+views.monitor({ id: 'view-status', label: 'State', get: () => state.mode });
 
 const vectors = controls.folder('Vectors');
 vectors.point(state, 'point', { id: 'point', label: 'Point', min: -1, max: 1, step: 0.01 });
@@ -228,11 +238,23 @@ window.__cfgDemo = {
 		cfg.setTheme(next);
 		themeControl.refresh();
 	},
+	snapshot: () => cfg.exportSettings(),
+	applySettings: (snapshot) => cfg.applySettings(snapshot),
+	resetSettings: () => cfg.resetSettings(),
+	pushLog: (message) => log.push(message),
+	logLines: () => log.get(),
+	dispose: () => {
+		disposed = true;
+		cfg.dispose();
+	},
 	frame: () => frameCount,
 	workload: () => workloadCost,
 };
 
 function loop(time: number) {
+	if (disposed) {
+		return;
+	}
 	cfg.beginFrame(time);
 	profiler.measure('state', () => update(time));
 	profiler.measure('draw', () => draw(time));
@@ -241,7 +263,9 @@ function loop(time: number) {
 	});
 	cfg.endFrame(time);
 	cfg.renderFrame(time);
-	requestAnimationFrame(loop);
+	if (!disposed) {
+		requestAnimationFrame(loop);
+	}
 }
 
 function update(time: number) {

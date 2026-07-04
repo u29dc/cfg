@@ -106,17 +106,38 @@ export class Pane implements PaneApi {
 		const pane = this.folder(options.label ?? 'Tabs', folderOptions);
 		pane.element.classList.add('cfg-tabs');
 		const nav = el(this.doc, 'div', 'cfg-tabs__nav');
-		for (const item of options.tabs) {
-			const text = typeof item === 'string' ? item : item.label;
+		nav.setAttribute('role', 'tablist');
+		const tabs = options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : item));
+		const selectedValue = options.initial ?? tabs[0]?.value;
+		for (let index = 0; index < tabs.length; index += 1) {
+			const item = tabs[index];
+			if (!item) {
+				continue;
+			}
 			const button = this.doc.createElement('button');
 			button.type = 'button';
 			button.className = 'cfg-choice';
-			button.textContent = text;
+			button.disabled = item.disabled ?? false;
+			button.textContent = item.label;
+			button.dataset['cfgValue'] = item.value;
+			button.setAttribute('role', 'tab');
+			button.setAttribute('aria-pressed', String(item.value === selectedValue));
+			button.setAttribute('aria-selected', String(item.value === selectedValue));
+			button.dataset['cfgSelected'] = String(item.value === selectedValue);
 			button.addEventListener('click', () => {
-				for (const child of nav.children) {
-					(child as HTMLElement).dataset['cfgSelected'] = 'false';
+				selectTab(nav, item.value);
+			});
+			button.addEventListener('keydown', (event) => {
+				const nextButton = nextTabButton(nav, tabs.length, index, event.key);
+				if (!nextButton) {
+					return;
 				}
-				button.dataset['cfgSelected'] = 'true';
+				event.preventDefault();
+				nextButton.focus();
+				const nextValue = nextButton.dataset['cfgValue'];
+				if (nextValue) {
+					selectTab(nav, nextValue);
+				}
 			});
 			nav.append(button);
 		}
@@ -426,4 +447,28 @@ function motion(nested: boolean): KeyframeAnimationOptions {
 
 function prefersReducedMotion() {
 	return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function selectTab(nav: HTMLElement, value: string) {
+	for (const child of nav.children) {
+		const tab = child as HTMLElement;
+		const selected = tab.dataset['cfgValue'] === value;
+		tab.dataset['cfgSelected'] = String(selected);
+		tab.setAttribute('aria-pressed', String(selected));
+		tab.setAttribute('aria-selected', String(selected));
+	}
+}
+
+function nextTabButton(nav: HTMLElement, count: number, index: number, key: string) {
+	let next = -1;
+	if (key === 'Home') {
+		next = 0;
+	} else if (key === 'End') {
+		next = count - 1;
+	} else if (key === 'ArrowLeft') {
+		next = Math.max(0, index - 1);
+	} else if (key === 'ArrowRight') {
+		next = Math.min(count - 1, index + 1);
+	}
+	return next === -1 ? undefined : (nav.children.item(next) as HTMLButtonElement | null | undefined);
 }

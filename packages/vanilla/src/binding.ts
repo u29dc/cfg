@@ -44,7 +44,7 @@ export function choice<T extends ChoiceValue>(value: unknown, options: readonly 
 	if (fallback === undefined) {
 		throw new Error('choice control requires at least one option');
 	}
-	return fallback;
+	throw new Error(`choice control rejected unknown value "${String(value)}"; expected one of ${options.map((item) => `"${String(item.value)}"`).join(', ')}`);
 }
 
 export function options<T extends ChoiceValue>(values: readonly T[] | readonly Choice<T>[]): Choice<T>[] {
