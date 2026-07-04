@@ -145,12 +145,12 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 	#pointer(event: PointerEvent) {
 		event.preventDefault();
 		this.#canvas.setPointerCapture(event.pointerId);
+		const bounds = measure(this.#canvas);
 		const update = (pointer: PointerEvent) => {
-			const rect = this.#canvas.getBoundingClientRect();
 			const min = this.#options.min ?? -1;
 			const max = this.#options.max ?? 1;
-			const x = clamp((pointer.clientX - rect.left) / rect.width, 0, 1);
-			const yRaw = clamp((pointer.clientY - rect.top) / rect.height, 0, 1);
+			const x = clamp((pointer.clientX - bounds.left) / bounds.width, 0, 1);
+			const yRaw = clamp((pointer.clientY - bounds.top) / bounds.height, 0, 1);
 			const y = this.#options.invertY ? yRaw : 1 - yRaw;
 			this.#binding.set({
 				x: snap(min + x * (max - min), this.#options.step),
@@ -294,13 +294,12 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 
 	#pointer(event: PointerEvent) {
 		event.preventDefault();
-		const rect = this.#canvas.getBoundingClientRect();
+		const bounds = measure(this.#canvas);
 		const value = this.get();
-		const h1 = Math.hypot(event.clientX - rect.left - value[0] * rect.width, event.clientY - rect.top);
-		const h2 = Math.hypot(event.clientX - rect.left - value[2] * rect.width, event.clientY - rect.top);
+		const h1 = Math.hypot(event.clientX - bounds.left - value[0] * bounds.width, event.clientY - bounds.top);
+		const h2 = Math.hypot(event.clientX - bounds.left - value[2] * bounds.width, event.clientY - bounds.top);
 		const handle = h1 <= h2 ? 0 : 2;
 		const update = (pointer: PointerEvent) => {
-			const bounds = this.#canvas.getBoundingClientRect();
 			const next: BezierTuple = [...this.get()];
 			next[handle] = snap(clamp((pointer.clientX - bounds.left) / bounds.width, 0, 1), 0.01);
 			next[handle + 1] = snap(clamp(1 - (pointer.clientY - bounds.top) / bounds.height, -2, 2), 0.01);
@@ -321,6 +320,16 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		this.#canvas.addEventListener('pointerup', up, { once: true });
 		update(event);
 	}
+}
+
+function measure(canvas: HTMLCanvasElement) {
+	const rect = canvas.getBoundingClientRect();
+	return {
+		left: rect.left,
+		top: rect.top,
+		width: Math.max(1, rect.width),
+		height: Math.max(1, rect.height),
+	};
 }
 
 function input(doc: Document) {

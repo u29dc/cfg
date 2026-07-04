@@ -1,12 +1,14 @@
 import type { Profiler, ProfilerOptions, ProfilerSnapshot } from '@u29dc/cfg-core';
-import { output, Profile, ratio, text, theme } from '@u29dc/cfg-core';
+import { output, Profile, type ProfileEntry, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
+import { fit } from '../utils/canvas';
 
 export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler {
 	readonly #profile: Profile;
 	readonly #canvas: HTMLCanvasElement;
 	readonly #ctx: CanvasRenderingContext2D | null;
 	readonly #readout: HTMLElement;
+	readonly #visible: ProfileEntry[] = [];
 	#dirty = true;
 
 	constructor(owner: Owner, options: ProfilerOptions) {
@@ -15,8 +17,8 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 		this.#profile = profile;
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-profiler';
-		this.#canvas.width = theme.metrics.profilerWidth * ratio();
-		this.#canvas.height = theme.metrics.profilerHeight * ratio();
+		this.#canvas.width = theme.metrics.profilerWidth;
+		this.#canvas.height = theme.metrics.profilerHeight;
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-profiler-readout');
 		this.field.append(this.#canvas, this.#readout);
@@ -42,7 +44,11 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 	}
 
 	measure<T>(label: string, fn: () => T) {
-		return this.#profile.measure(label, () => this.owner.clock(), fn);
+		try {
+			return this.#profile.measure(label, () => this.owner.clock(), fn);
+		} finally {
+			this.#dirty = true;
+		}
 	}
 
 	getSnapshot() {
@@ -72,39 +78,64 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 	}
 
 	protected render() {
-		const snapshot = this.#profile.snapshot();
-		this.#draw(snapshot);
-		this.#readout.textContent =
-			snapshot.entries
-				.slice(0, 3)
-				.map((entry) => `${entry.label} ${text(entry.latest)}ms`)
-				.join('  ') || 'no samples';
+		this.#refreshVisible();
+		this.#draw();
+		this.#readout.textContent = this.#readoutText();
 	}
 
-	#draw(snapshot: ProfilerSnapshot) {
+	#refreshVisible() {
+		this.#visible.length = 0;
+		for (const entry of this.#profile.entries()) {
+			this.#visible.push(entry);
+			if (this.#visible.length >= theme.metrics.profilerRows) {
+				break;
+			}
+		}
+	}
+
+	#readoutText() {
+		if (this.#visible.length === 0) {
+			return 'no samples';
+		}
+		let result = '';
+		const count = Math.min(this.#visible.length, theme.metrics.profilerReadout);
+		for (let index = 0; index < count; index += 1) {
+			const entry = this.#visible[index];
+			if (!entry) {
+				continue;
+			}
+			result += `${index === 0 ? '' : '  '}${entry.label} ${text(entry.latest)}ms`;
+		}
+		return result || 'no samples';
+	}
+
+	#draw() {
 		const ctx = this.#ctx;
 		if (!ctx) {
 			return;
 		}
-		const width = this.#canvas.width;
-		const height = this.#canvas.height;
-		const entries = snapshot.entries.slice(0, 8);
-		const max = Math.max(theme.metrics.frameBudget, ...entries.map((entry) => entry.max));
-		const row = height / Math.max(1, entries.length);
+		const { width, height, scale } = fit(this.#canvas, theme.metrics.profilerWidth, theme.metrics.profilerHeight);
+		let max: number = theme.metrics.frameBudget;
+		for (const entry of this.#visible) {
+			max = Math.max(max, entry.max);
+		}
+		const row = height / Math.max(1, this.#visible.length);
+		const inset = theme.metrics.profilerInset * scale;
+		const barInset = theme.metrics.profilerBarInset * scale;
 		ctx.clearRect(0, 0, width, height);
 		ctx.fillStyle = theme.telemetry.background;
 		ctx.fillRect(0, 0, width, height);
-		for (let index = 0; index < entries.length; index += 1) {
-			const entry = entries[index];
+		for (let index = 0; index < this.#visible.length; index += 1) {
+			const entry = this.#visible[index];
 			if (!entry) {
 				continue;
 			}
 			const y = index * row;
 			ctx.fillStyle = entry.latest > theme.metrics.frameBudget ? theme.telemetry.warning : theme.telemetry.ok;
-			ctx.fillRect(0, y + 2, (entry.latest / max) * width, Math.max(2, row - 4));
+			ctx.fillRect(0, y + barInset, (entry.latest / max) * width, Math.max(barInset, row - barInset * 2));
 			ctx.fillStyle = theme.telemetry.text;
-			ctx.font = `${10 * ratio()}px ui-monospace, monospace`;
-			ctx.fillText(entry.label, 4 * ratio(), y + row * 0.65);
+			ctx.font = `${theme.metrics.profilerFontSize * scale}px ui-monospace, monospace`;
+			ctx.fillText(entry.label, inset, y + row * 0.65);
 		}
 	}
 }

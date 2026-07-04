@@ -6,6 +6,7 @@ export class ProfileEntry {
 	readonly #values: Float32Array;
 	#index = 0;
 	#count = 0;
+	#sum = 0;
 	latest = 0;
 	max = 0;
 
@@ -21,20 +22,25 @@ export class ProfileEntry {
 	add(value: number) {
 		this.latest += Math.max(0, value);
 		this.max = Math.max(this.max, this.latest);
+		if (this.#count === this.#values.length) {
+			this.#sum -= this.#values[this.#index] ?? 0;
+		} else {
+			this.#count += 1;
+		}
 		this.#values[this.#index] = this.latest;
+		this.#sum += this.latest;
 		this.#index = (this.#index + 1) % this.#values.length;
-		this.#count = Math.min(this.#count + 1, this.#values.length);
+	}
+
+	get average() {
+		return this.#count > 0 ? this.#sum / this.#count : 0;
 	}
 
 	snapshot(): EntrySnapshot {
-		let sum = 0;
-		for (let index = 0; index < this.#count; index += 1) {
-			sum += this.#values[index] ?? 0;
-		}
 		return {
 			label: this.label,
 			latest: this.latest,
-			average: this.#count > 0 ? sum / this.#count : 0,
+			average: this.average,
 			max: this.max,
 		};
 	}
@@ -100,6 +106,10 @@ export class Profile {
 		};
 	}
 
+	entries() {
+		return this.#entries.values();
+	}
+
 	clear() {
 		this.#entries.clear();
 		this.#stack.length = 0;
@@ -117,5 +127,5 @@ export class Profile {
 }
 
 function clean(label: string) {
-	return label.trim().slice(0, 80) || 'section';
+	return label.trim().slice(0, theme.metrics.profileLabelMax) || 'section';
 }

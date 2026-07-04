@@ -1,3 +1,4 @@
+import { theme } from './theme';
 import { clamp, finite } from './utils/math';
 
 export interface FrameSample {
@@ -19,14 +20,12 @@ export class Frame {
 
 	begin(time: number, now: number) {
 		const safe = finite(time, this.#sample.time);
-		const delta = Number.isFinite(this.#sample.time) ? clamp(safe - this.#sample.time, 0, 1_000) : 0;
-		this.#sample = {
-			frame: this.#sample.frame + 1,
-			time: safe,
-			delta,
-			start: now,
-			duration: 0,
-		};
+		const delta = Number.isFinite(this.#sample.time) ? clamp(safe - this.#sample.time, 0, theme.metrics.frameDeltaMax) : 0;
+		this.#sample.frame += 1;
+		this.#sample.time = safe;
+		this.#sample.delta = delta;
+		this.#sample.start = now;
+		this.#sample.duration = 0;
 		return this.#sample;
 	}
 

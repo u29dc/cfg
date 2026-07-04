@@ -1,8 +1,6 @@
 import type { LogMonitor, LogOptions, MonitorOptions } from '@u29dc/cfg-core';
-import { output } from '@u29dc/cfg-core';
+import { clamp, output, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
-
-const defaultHz = 8;
 
 export class Monitor<T> extends Base<T> {
 	readonly #getValue: () => T;
@@ -18,7 +16,7 @@ export class Monitor<T> extends Base<T> {
 		super(owner, 'monitor', { ...options, serialize: false }, initial);
 		this.#getValue = getter;
 		this.#format = options.format ?? ((value) => String(value ?? ''));
-		this.#interval = 1_000 / (options.throttleHz ?? defaultHz);
+		this.#interval = theme.metrics.millisPerSecond / (options.throttleHz ?? theme.metrics.monitorHz);
 		this.#value = initial;
 		this.#readout = output(owner.doc, 'cfg-readout');
 		this.field.append(this.#readout);
@@ -59,11 +57,11 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 
 	constructor(owner: Owner, options: LogOptions) {
 		super(owner, 'log-monitor', { ...options, serialize: false }, []);
-		this.#limit = Math.max(1, Math.floor(options.bufferSize ?? 100));
-		this.#interval = 1_000 / (options.throttleHz ?? defaultHz);
+		this.#limit = Math.max(1, Math.floor(options.bufferSize ?? theme.metrics.logBuffer));
+		this.#interval = theme.metrics.millisPerSecond / (options.throttleHz ?? theme.metrics.monitorHz);
 		this.#readout = owner.doc.createElement('pre');
 		this.#readout.className = 'cfg-log';
-		this.#readout.style.maxBlockSize = `${Math.max(1, Math.floor(options.rows ?? 4)) * 1.2}em`;
+		this.#readout.dataset['cfgRows'] = String(clamp(Math.floor(options.rows ?? theme.metrics.logRows), 1, theme.metrics.logRowsMax));
 		this.field.append(this.#readout);
 	}
 

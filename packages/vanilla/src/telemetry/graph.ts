@@ -1,6 +1,7 @@
 import type { GraphOptions, TelemetryGraph } from '@u29dc/cfg-core';
-import { clamp, output, ratio, Series, text, theme } from '@u29dc/cfg-core';
+import { clamp, output, Series, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
+import { fit } from '../utils/canvas';
 import { color } from '../utils/color';
 
 type Mode = 'graph' | 'waveform' | 'fps' | 'frame';
@@ -27,13 +28,13 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		);
 		this.#options = options;
 		this.#mode = mode;
-		const history = Math.max(theme.metrics.graphMinHistory, Math.floor(options.history ?? theme.metrics.graphHistory));
+		const history = Math.floor(clamp(options.history ?? theme.metrics.graphHistory, theme.metrics.graphMinHistory, theme.metrics.graphHistoryMax));
 		const series = options.series?.length ? options.series : [{ label: options.label ?? mode }];
 		this.#series = series.map((item, index) => new Series(seriesOptions(item, index, history)));
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-graph';
-		this.#canvas.width = history;
-		this.#canvas.height = theme.metrics.graphHeight * ratio();
+		this.#canvas.width = theme.metrics.graphWidth;
+		this.#canvas.height = theme.metrics.graphHeight;
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-graph-readout');
 		this.field.append(this.#canvas, this.#readout);
@@ -91,7 +92,7 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 
 	protected render() {
 		this.#draw();
-		this.#readout.textContent = `${this.get().map(text).join(' / ')}${this.#options.unit ?? ''}`;
+		this.#readout.textContent = this.#readoutText();
 	}
 
 	#draw() {
@@ -99,14 +100,13 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		if (!ctx) {
 			return;
 		}
-		const width = this.#canvas.width;
-		const canvasHeight = this.#canvas.height;
+		const { width, height } = fit(this.#canvas, theme.metrics.graphWidth, theme.metrics.graphHeight);
 		const range = this.#range();
-		ctx.clearRect(0, 0, width, canvasHeight);
+		ctx.clearRect(0, 0, width, height);
 		ctx.fillStyle = theme.telemetry.background;
-		ctx.fillRect(0, 0, width, canvasHeight);
+		ctx.fillRect(0, 0, width, height);
 		if (this.#options.target !== undefined) {
-			const y = yOf(this.#options.target, range.min, range.max, canvasHeight);
+			const y = yOf(this.#options.target, range.min, range.max, height);
 			ctx.strokeStyle = theme.telemetry.target;
 			ctx.beginPath();
 			ctx.moveTo(0, y);
@@ -114,22 +114,20 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 			ctx.stroke();
 		}
 		for (const series of this.#series) {
-			if (series.ring.count < 2) {
+			drawSeries(ctx, series, range.min, range.max, width, height);
+		}
+	}
+
+	#readoutText() {
+		let result = '';
+		for (let index = 0; index < this.#series.length; index += 1) {
+			const series = this.#series[index];
+			if (!series) {
 				continue;
 			}
-			ctx.strokeStyle = series.color;
-			ctx.beginPath();
-			for (let offset = 0; offset < series.ring.count; offset += 1) {
-				const x = (offset / Math.max(1, series.ring.data.length - 1)) * width;
-				const y = yOf(series.ring.at(offset), range.min, range.max, canvasHeight);
-				if (offset === 0) {
-					ctx.moveTo(x, y);
-				} else {
-					ctx.lineTo(x, y);
-				}
-			}
-			ctx.stroke();
+			result += `${index === 0 ? '' : ' / '}${text(series.ring.latest())}`;
 		}
+		return `${result}${this.#options.unit ?? ''}`;
 	}
 
 	#range() {
@@ -151,6 +149,40 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 
 function yOf(value: number, min: number, max: number, canvasHeight: number) {
 	return canvasHeight - clamp((value - min) / (max - min || 1), 0, 1) * canvasHeight;
+}
+
+function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, max: number, width: number, height: number) {
+	const count = series.ring.count;
+	if (count < 2) {
+		return;
+	}
+	const columns = Math.max(2, Math.min(count, Math.floor(width)));
+	ctx.strokeStyle = series.color;
+	ctx.beginPath();
+	for (let column = 0; column < columns; column += 1) {
+		const value = sample(series, column, columns, count);
+		const x = (column / Math.max(1, columns - 1)) * width;
+		const y = yOf(value, min, max, height);
+		if (column === 0) {
+			ctx.moveTo(x, y);
+		} else {
+			ctx.lineTo(x, y);
+		}
+	}
+	ctx.stroke();
+}
+
+function sample(series: Series, column: number, columns: number, count: number) {
+	if (count <= columns) {
+		return series.ring.at(column);
+	}
+	const start = Math.floor((column / columns) * count);
+	const end = Math.max(start + 1, Math.floor(((column + 1) / columns) * count));
+	let total = 0;
+	for (let index = start; index < end; index += 1) {
+		total += series.ring.at(index);
+	}
+	return total / (end - start);
 }
 
 function seriesOptions(item: { id?: string; label?: string; color?: string }, index: number, size: number) {

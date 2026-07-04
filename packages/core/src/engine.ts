@@ -1,6 +1,7 @@
 import { Frame } from './frame';
 import { Ids } from './id';
 import { Settings } from './settings';
+import { theme } from './theme';
 import type { CancelRaf, CfgOptions, Clock, FrameProfiler, FrameRenderable, FrameSampler, RuntimeItem, SchedulerMode } from './types';
 
 export class Engine {
@@ -57,7 +58,7 @@ export class Engine {
 		this.assert();
 		const sample = this.frame.begin(time, this.clock());
 		if (sample.delta > 0) {
-			this.#sample('fps', 1_000 / sample.delta);
+			this.#sample('fps', theme.metrics.millisPerSecond / sample.delta);
 		}
 		for (const profiler of this.#profilers) {
 			profiler.beginFrame(sample.frame);

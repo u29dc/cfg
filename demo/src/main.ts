@@ -47,6 +47,7 @@ const demoMetrics = {
 	canvasHeight: 720,
 	frameClamp: 64,
 	logEvery: 90,
+	hudEvery: 4,
 	tau: Math.PI * 2,
 	centerInfluence: 0.24,
 	phaseStep: 0.07,
@@ -125,6 +126,7 @@ let frameCount = 0;
 let pulse = 0;
 let lastTime = 0;
 let workloadCost = 0;
+let hudKey = '';
 const cfg = createCfg({ scheduler: 'external' });
 
 const controls = cfg.pane({ id: 'runtime', title: 'Runtime' });
@@ -233,28 +235,36 @@ function update(time: number) {
 	const dt = Math.min(demoMetrics.frameClamp, time - lastTime || theme.metrics.frameBudget);
 	lastTime = time;
 	frameCount += 1;
-	pulse += (dt / 1000) * state.speed;
+	pulse += (dt / theme.metrics.millisPerSecond) * state.speed;
 	if (frameCount % demoMetrics.logEvery === 0) {
 		log.push(`${state.mode} ${frameCount}`);
 	}
+	if (frameCount % demoMetrics.hudEvery === 0) {
+		renderHud();
+	}
+	wave.push([Math.sin(pulse * demoMetrics.tau), Math.cos(pulse * demoMetrics.tau)]);
+	fps.push(theme.metrics.millisPerSecond / dt);
+	frame.push(dt);
+}
+
+function renderHud() {
+	const snapshot = {
+		enabled: state.enabled,
+		mode: state.mode,
+		density: state.density,
+		range: state.range,
+		position: state.position,
+	};
+	const key = `${state.label}|${state.mode}|${state.speed}|${state.point.x}|${state.point.y}|${JSON.stringify(snapshot)}`;
+	if (key === hudKey) {
+		return;
+	}
+	hudKey = key;
 	labelNode.textContent = state.label;
 	modeNode.textContent = state.mode;
 	speedNode.textContent = `${state.speed.toFixed(2)}x`;
 	pointNode.textContent = `${state.point.x.toFixed(2)}, ${state.point.y.toFixed(2)}`;
-	stateNode.textContent = JSON.stringify(
-		{
-			enabled: state.enabled,
-			mode: state.mode,
-			density: state.density,
-			range: state.range,
-			position: state.position,
-		},
-		null,
-		2,
-	);
-	wave.push([Math.sin(pulse * demoMetrics.tau), Math.cos(pulse * demoMetrics.tau)]);
-	fps.push(1_000 / dt);
-	frame.push(dt);
+	stateNode.textContent = JSON.stringify(snapshot, null, 2);
 }
 
 function draw(time: number) {

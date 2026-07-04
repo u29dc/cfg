@@ -34,17 +34,33 @@ export interface Theme {
     };
     metrics: {
         frameBudget: number;
+        frameDeltaMax: number;
         fpsTarget: number;
         fpsMax: number;
         frameMax: number;
+        millisPerSecond: number;
+        graphWidth: number;
         graphHeight: number;
         graphHistory: number;
+        graphHistoryMax: number;
         graphMinHistory: number;
         profileHistory: number;
+        profileLabelMax: number;
+        profilerRows: number;
+        profilerReadout: number;
+        profilerFontSize: number;
+        profilerInset: number;
+        profilerBarInset: number;
         profilerWidth: number;
         profilerHeight: number;
         padSize: number;
         bezierSize: number;
+        colorSwatchSize: number;
+        paletteSwatchSize: number;
+        monitorHz: number;
+        logRows: number;
+        logRowsMax: number;
+        logBuffer: number;
     };
 }
 export interface CfgOptions {

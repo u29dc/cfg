@@ -305,7 +305,56 @@
 
 .cfg-log {
 	margin: 0;
+	max-block-size: 4.8em;
 	white-space: pre;
+}
+
+.cfg-log[data-cfg-rows="1"] {
+	max-block-size: 1.2em;
+}
+
+.cfg-log[data-cfg-rows="2"] {
+	max-block-size: 2.4em;
+}
+
+.cfg-log[data-cfg-rows="3"] {
+	max-block-size: 3.6em;
+}
+
+.cfg-log[data-cfg-rows="4"] {
+	max-block-size: 4.8em;
+}
+
+.cfg-log[data-cfg-rows="5"] {
+	max-block-size: 6em;
+}
+
+.cfg-log[data-cfg-rows="6"] {
+	max-block-size: 7.2em;
+}
+
+.cfg-log[data-cfg-rows="7"] {
+	max-block-size: 8.4em;
+}
+
+.cfg-log[data-cfg-rows="8"] {
+	max-block-size: 9.6em;
+}
+
+.cfg-log[data-cfg-rows="9"] {
+	max-block-size: 10.8em;
+}
+
+.cfg-log[data-cfg-rows="10"] {
+	max-block-size: 12em;
+}
+
+.cfg-log[data-cfg-rows="11"] {
+	max-block-size: 13.2em;
+}
+
+.cfg-log[data-cfg-rows="12"] {
+	max-block-size: 14.4em;
 }
 
 .cfg-image-preview {

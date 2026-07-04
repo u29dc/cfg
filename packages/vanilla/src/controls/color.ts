@@ -16,8 +16,8 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 		this.#binding = binding;
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-swatch-canvas';
-		this.#canvas.width = 20;
-		this.#canvas.height = 20;
+		this.#canvas.width = theme.metrics.colorSwatchSize;
+		this.#canvas.height = theme.metrics.colorSwatchSize;
 		this.#picker = owner.doc.createElement('input');
 		this.#picker.type = 'color';
 		this.#picker.className = 'cfg-color-picker';
@@ -46,7 +46,7 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 		const value = this.get();
 		this.#text.value = value;
 		this.#picker.value = six(value);
-		swatch(this.#canvas.getContext('2d'), value, 20);
+		swatch(this.#canvas.getContext('2d'), value, theme.metrics.colorSwatchSize);
 	}
 
 	#set(value: string, event: 'input' | 'change') {
@@ -77,10 +77,10 @@ export class PaletteControl<T extends Record<string, unknown>, K extends keyof T
 			button.dataset['cfgValue'] = item.value;
 			button.disabled = options.readonly ?? false;
 			const canvas = owner.doc.createElement('canvas');
-			canvas.width = 18;
-			canvas.height = 18;
+			canvas.width = theme.metrics.paletteSwatchSize;
+			canvas.height = theme.metrics.paletteSwatchSize;
 			canvas.className = 'cfg-swatch-canvas';
-			swatch(canvas.getContext('2d'), item.value, 18);
+			swatch(canvas.getContext('2d'), item.value, theme.metrics.paletteSwatchSize);
 			button.append(canvas);
 			button.addEventListener('click', () => this.#choose(item.value));
 			this.#buttons.push(button);

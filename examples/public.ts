@@ -80,13 +80,13 @@ export function mountPublicExample(root: HTMLElement): () => void {
 	media.image(state, 'image', { accept: 'image/png,image/jpeg,image/webp' });
 
 	const telemetry = cfg.pane({ id: 'telemetry', title: 'Telemetry', collapsed: false });
-	const fps = telemetry.fpsGraph({ label: 'FPS', min: 0, max: theme.metrics.fpsMax, target: theme.metrics.fpsTarget, history: theme.metrics.profileHistory });
-	const frame = telemetry.frameGraph({ label: 'Frame', min: 0, max: theme.metrics.frameMax, target: theme.metrics.frameBudget, unit: 'ms', history: theme.metrics.profileHistory });
+	const fps = telemetry.fpsGraph({ label: 'FPS', min: 0, max: theme.metrics.fpsMax, target: theme.metrics.fpsTarget, history: theme.metrics.graphHistory });
+	const frame = telemetry.frameGraph({ label: 'Frame', min: 0, max: theme.metrics.frameMax, target: theme.metrics.frameBudget, unit: 'ms', history: theme.metrics.graphHistory });
 	const waveform = telemetry.waveformGraph({
 		label: 'Waveform',
 		min: -1,
 		max: 1,
-		history: theme.metrics.profileHistory,
+		history: theme.metrics.graphHistory,
 		series: [{ label: 'sin' }, { label: 'cos', color: theme.palette.gold }],
 	});
 	const profiler = telemetry.profiler({ label: 'Profiler' });
