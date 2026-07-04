@@ -10,4 +10,17 @@ The runtime is split into three lanes:
 - telemetry lane: per-frame typed buffers and canvas drawing;
 - readout lane: throttled text monitors for human-readable diagnostics.
 
+## Default Skin
+
+The default CSS skin intentionally adapts Tweakpane's MIT-licensed compact theme
+mechanics to cfg's own class names and DOM. The shipped CSS preserves the
+Tweakpane MIT notice and keeps Geist Mono as cfg's default font. This is a
+styling derivative only; cfg does not embed Tweakpane's JavaScript runtime,
+plugin system, or class names.
+
+Theme mode is managed at the cfg root with `data-cfg-theme` and exposed through
+`createCfg({ theme })`, `cfg.getTheme()`, and `cfg.setTheme(theme)`. The default
+theme is `system`, while explicit `light` and `dark` modes are intended for host
+theme toggles such as `_www_template`'s site-wide theme switch.
+
 This document will be expanded as the implementation lands.

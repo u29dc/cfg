@@ -7,6 +7,8 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 	readonly #binding: Binding<string>;
 	readonly #input: HTMLInputElement;
 	readonly #file: HTMLInputElement;
+	readonly #fileButton: HTMLButtonElement;
+	readonly #fileName: HTMLElement;
 	readonly #preview: HTMLImageElement;
 	readonly #options: ImageOptions;
 	#objectUrl = '';
@@ -27,18 +29,34 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 		this.#file.type = 'file';
 		this.#file.className = 'cfg-file';
 		this.#file.accept = options.accept ?? 'image/png,image/jpeg,image/webp,image/gif,image/avif';
+		this.#file.disabled = this.disabled;
+		this.#file.tabIndex = -1;
+		this.#fileName = owner.doc.createElement('span');
+		this.#fileName.className = 'cfg-file-name';
+		this.#fileName.textContent = 'No file selected';
+		this.#fileButton = owner.doc.createElement('button');
+		this.#fileButton.type = 'button';
+		this.#fileButton.className = 'cfg-button';
+		this.#fileButton.textContent = 'Choose file';
+		this.#fileButton.disabled = this.disabled;
+		const fileRow = owner.doc.createElement('div');
+		fileRow.className = 'cfg-file-row';
+		fileRow.append(this.#file, this.#fileButton, this.#fileName);
 		const clear = owner.doc.createElement('button');
 		clear.type = 'button';
 		clear.className = 'cfg-button';
 		clear.textContent = 'Clear';
-		this.field.append(this.#preview, this.#input, this.#file, clear);
+		clear.disabled = this.disabled;
+		this.#input.disabled = this.disabled;
+		this.field.append(this.#preview, this.#input, fileRow, clear);
 		this.#input.addEventListener('input', () => {
 			this.#binding.set(this.#input.value);
 			this.render();
 			this.emit('input');
 		});
+		this.#fileButton.addEventListener('click', () => this.#file.click());
 		this.#file.addEventListener('change', () => this.#fileChange());
-		clear.addEventListener('click', () => this.set(''));
+		clear.addEventListener('click', () => this.#clear());
 		this.render();
 	}
 
@@ -49,6 +67,9 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 	set(value: string) {
 		this.#binding.set(value);
 		this.#revoke();
+		if (value === '') {
+			this.#file.value = '';
+		}
 		this.render();
 		this.emit('change');
 	}
@@ -61,6 +82,8 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 	protected render() {
 		const src = this.#objectUrl || preview(this.get(), this.#options.allowRemotePreview);
 		this.#input.value = this.get();
+		const file = this.#file.files?.[0];
+		this.#fileName.textContent = file ? file.name : 'No file selected';
 		this.#preview.hidden = src === '';
 		if (src) {
 			this.#preview.src = src;
@@ -81,6 +104,15 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 			this.#objectUrl = URL.createObjectURL(file);
 			this.#binding.set('');
 		}
+		this.render();
+		this.emit('input');
+		this.emit('change');
+	}
+
+	#clear() {
+		this.#binding.set('');
+		this.#file.value = '';
+		this.#revoke();
 		this.render();
 		this.emit('input');
 		this.emit('change');

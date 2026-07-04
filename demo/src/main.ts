@@ -1,6 +1,6 @@
-import { createCfg, type SettingsSnapshot, theme } from 'cfg';
+import { createCfg, type SettingsSnapshot, type ThemeMode, theme } from 'cfg';
 import 'cfg/styles.css';
-import { bezierPresets, defaultBezier, densityOptions, modeOptions, paletteOptions, placementOptions } from '../../examples/options';
+import { bezierPresets, cfgThemeOptions, defaultBezier, densityOptions, modeOptions, paletteOptions, placementOptions } from '../../examples/options';
 import './demo.css';
 
 type Mode = (typeof modeOptions)[number];
@@ -8,6 +8,7 @@ type Density = (typeof densityOptions)[number];
 type Placement = (typeof placementOptions)[number];
 
 interface DemoState extends Record<string, unknown> {
+	cfgTheme: ThemeMode;
 	enabled: boolean;
 	fakeWork: boolean;
 	speed: number;
@@ -31,6 +32,8 @@ declare global {
 	interface Window {
 		__cfgDemo?: {
 			state: DemoState;
+			theme: () => ThemeMode;
+			setTheme: (theme: ThemeMode) => void;
 			frame: () => number;
 			workload: () => number;
 		};
@@ -102,6 +105,7 @@ const pointNode = must(root.querySelector<HTMLElement>('[data-demo-point]'), 'de
 const ctx = must(canvas.getContext('2d'), '2d canvas unavailable');
 
 const state: DemoState = {
+	cfgTheme: 'system',
 	enabled: true,
 	fakeWork: false,
 	speed: 1,
@@ -127,9 +131,12 @@ let pulse = 0;
 let lastTime = 0;
 let workloadCost = 0;
 let hudKey = '';
-const cfg = createCfg({ scheduler: 'external' });
+const cfg = createCfg({ scheduler: 'external', theme: state.cfgTheme });
 
 const controls = cfg.pane({ id: 'runtime', title: 'Runtime' });
+const appearance = controls.folder('Appearance');
+const themeControl = appearance.segmented(state, 'cfgTheme', { id: 'cfg-theme', label: 'Theme', options: cfgThemeOptions });
+themeControl.on('change', (next) => cfg.setTheme(next));
 const basics = controls.folder('Basics');
 basics.toggle(state, 'enabled', { id: 'enabled', label: 'Enabled' });
 basics.toggle(state, 'fakeWork', { id: 'fake-work', label: 'Workload' });
@@ -215,6 +222,12 @@ const log = telemetry.logMonitor({ id: 'log', label: 'Log', rows: 5, bufferSize:
 telemetry.monitor({ id: 'work', label: 'Work ms', get: () => workloadCost, format: (value) => `${value.toFixed(2)}ms` });
 window.__cfgDemo = {
 	state,
+	theme: () => cfg.getTheme(),
+	setTheme: (next) => {
+		state.cfgTheme = next;
+		cfg.setTheme(next);
+		themeControl.refresh();
+	},
 	frame: () => frameCount,
 	workload: () => workloadCost,
 };

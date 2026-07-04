@@ -17,6 +17,7 @@ export class Toggle<T extends Record<string, unknown>, K extends RecordKey<T>> e
 		this.#input.id = `${this.id}-input`;
 		this.#input.className = 'cfg-toggle';
 		this.#input.type = 'checkbox';
+		this.#input.disabled = this.disabled;
 		this.field.append(this.#input);
 		this.#input.addEventListener('input', () => {
 			this.#binding.set(this.#input.checked);
@@ -118,6 +119,7 @@ export class Textual<T extends Record<string, unknown>, K extends RecordKey<T>> 
 		if (options.placeholder) {
 			this.#input.placeholder = options.placeholder;
 		}
+		this.#input.disabled = this.disabled;
 		this.field.append(this.#input);
 		this.#input.addEventListener('input', () => {
 			this.#binding.set(this.#input.value);
@@ -150,6 +152,7 @@ function field(doc: Document, id: string, type: 'number' | 'range', options: Num
 	input.id = id;
 	input.type = type;
 	input.className = type === 'range' ? 'cfg-range' : 'cfg-input cfg-input--number';
+	input.disabled = options.disabled ?? false;
 	if (options.min !== undefined) {
 		input.min = String(options.min);
 	}

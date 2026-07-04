@@ -47,9 +47,11 @@ export class Pane implements PaneApi {
 	readonly element: HTMLElement;
 	readonly doc: Document;
 	readonly #manager: Manager;
+	readonly #header: HTMLButtonElement;
 	readonly #body: HTMLElement;
 	readonly #children = new Set<Managed | Pane>();
 	readonly #parent: Pane | undefined;
+	#animation: Animation | undefined;
 	#collapsed = false;
 	#disposed = false;
 
@@ -63,13 +65,22 @@ export class Pane implements PaneApi {
 		this.element = el(this.doc, parent ? 'section' : 'aside', parent ? 'cfg-folder' : 'cfg-pane');
 		this.element.dataset['cfgId'] = this.id;
 		this.element.dataset['cfgCollapsed'] = String(this.#collapsed);
-		const header = el(this.doc, 'button', parent ? 'cfg-folder__header' : 'cfg-pane__header');
-		header.type = 'button';
-		header.textContent = options.title;
-		header.setAttribute('aria-expanded', String(!this.#collapsed));
-		header.addEventListener('click', () => this.toggleCollapsed());
+		this.#header = el(this.doc, 'button', parent ? 'cfg-folder__header' : 'cfg-pane__header') as HTMLButtonElement;
+		this.#header.type = 'button';
+		this.#header.id = `${this.id}-header`;
+		this.#header.setAttribute('aria-controls', `${this.id}-body`);
+		this.#header.addEventListener('click', () => this.toggleCollapsed());
+		const marker = el(this.doc, 'span', 'cfg-disclosure');
+		marker.setAttribute('aria-hidden', 'true');
+		const title = el(this.doc, 'span', parent ? 'cfg-folder__title' : 'cfg-pane__title');
+		title.textContent = options.title;
+		this.#header.append(marker, title);
 		this.#body = el(this.doc, 'div', parent ? 'cfg-folder__body' : 'cfg-pane__body');
-		this.element.append(header, this.#body);
+		this.#body.id = `${this.id}-body`;
+		this.#body.setAttribute('role', 'group');
+		this.#body.setAttribute('aria-labelledby', this.#header.id);
+		this.element.append(this.#header, this.#body);
+		this.#syncCollapsed();
 	}
 
 	folder(label: string, options: FolderOptions = {}): Pane {
@@ -247,15 +258,19 @@ export class Pane implements PaneApi {
 	}
 
 	collapse(): void {
+		if (this.#collapsed) {
+			return;
+		}
 		this.#collapsed = true;
-		this.element.dataset['cfgCollapsed'] = 'true';
-		this.element.querySelector('button')?.setAttribute('aria-expanded', 'false');
+		this.#animateCollapse();
 	}
 
 	expand(): void {
+		if (!this.#collapsed) {
+			return;
+		}
 		this.#collapsed = false;
-		this.element.dataset['cfgCollapsed'] = 'false';
-		this.element.querySelector('button')?.setAttribute('aria-expanded', 'true');
+		this.#animateExpand();
 	}
 
 	toggleCollapsed(): void {
@@ -302,4 +317,89 @@ export class Pane implements PaneApi {
 		this.#manager.add(control);
 		return control;
 	}
+
+	#syncCollapsed() {
+		this.element.dataset['cfgCollapsed'] = String(this.#collapsed);
+		this.#header.setAttribute('aria-expanded', String(!this.#collapsed));
+		this.#body.setAttribute('aria-hidden', String(this.#collapsed));
+		this.#body.hidden = this.#collapsed;
+	}
+
+	#syncHeader() {
+		this.element.dataset['cfgCollapsed'] = String(this.#collapsed);
+		this.#header.setAttribute('aria-expanded', String(!this.#collapsed));
+		this.#body.setAttribute('aria-hidden', String(this.#collapsed));
+	}
+
+	#animateCollapse() {
+		const start = this.#body.getBoundingClientRect().height;
+		this.#animation?.cancel();
+		this.#syncHeader();
+		this.#body.dataset['cfgAnimating'] = 'true';
+		const animation = this.#body.animate(
+			[
+				{ height: `${start}px`, opacity: 1 },
+				{ height: '0px', opacity: 0 },
+			],
+			motion(this.#parent !== undefined),
+		);
+		this.#animation = animation;
+		animation.onfinish = () => {
+			if (this.#animation !== animation) {
+				return;
+			}
+			this.#body.hidden = true;
+			delete this.#body.dataset['cfgAnimating'];
+			this.#animation = undefined;
+		};
+		animation.oncancel = () => {
+			if (this.#animation !== animation) {
+				return;
+			}
+			delete this.#body.dataset['cfgAnimating'];
+			this.#animation = undefined;
+		};
+	}
+
+	#animateExpand() {
+		const start = this.#body.hidden ? 0 : this.#body.getBoundingClientRect().height;
+		this.#animation?.cancel();
+		this.#body.hidden = false;
+		this.#syncHeader();
+		const end = this.#body.offsetHeight;
+		this.#body.dataset['cfgAnimating'] = 'true';
+		const animation = this.#body.animate(
+			[
+				{ height: `${start}px`, opacity: start > 0 ? 1 : 0 },
+				{ height: `${end}px`, opacity: 1 },
+			],
+			motion(this.#parent !== undefined),
+		);
+		this.#animation = animation;
+		animation.onfinish = () => {
+			if (this.#animation !== animation) {
+				return;
+			}
+			delete this.#body.dataset['cfgAnimating'];
+			this.#animation = undefined;
+		};
+		animation.oncancel = () => {
+			if (this.#animation !== animation) {
+				return;
+			}
+			delete this.#body.dataset['cfgAnimating'];
+			this.#animation = undefined;
+		};
+	}
+}
+
+function motion(nested: boolean): KeyframeAnimationOptions {
+	return {
+		duration: prefersReducedMotion() ? 0 : nested ? 110 : 150,
+		easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+	};
+}
+
+function prefersReducedMotion() {
+	return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

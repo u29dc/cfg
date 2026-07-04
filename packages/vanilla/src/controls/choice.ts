@@ -53,6 +53,7 @@ export class ChoiceControl<T extends Record<string, unknown>, K extends keyof T,
 		const node = this.owner.doc.createElement('select');
 		node.id = `${this.id}-input`;
 		node.className = 'cfg-select';
+		node.disabled = this.disabled;
 		for (const item of this.#options) {
 			const option = this.owner.doc.createElement('option');
 			option.value = encoded(item.value);
@@ -84,7 +85,7 @@ export class ChoiceControl<T extends Record<string, unknown>, K extends keyof T,
 			const button = this.owner.doc.createElement('button');
 			button.type = 'button';
 			button.className = 'cfg-choice';
-			button.disabled = item.disabled ?? false;
+			button.disabled = this.disabled || (item.disabled ?? false);
 			button.textContent = item.label;
 			button.dataset['cfgValue'] = encoded(item.value);
 			button.setAttribute('aria-pressed', 'false');

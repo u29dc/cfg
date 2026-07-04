@@ -51,6 +51,7 @@ export class VectorControl<T extends Record<string, unknown>, K extends keyof T>
 		input.type = 'number';
 		input.className = 'cfg-input cfg-input--axis';
 		input.step = String(this.#options.step ?? 0.01);
+		input.disabled = this.disabled;
 		this.#inputs.set(axisName, input);
 		input.addEventListener('input', () => {
 			const current = { ...(this.get() as Record<string, number>) };
@@ -106,9 +107,12 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 		this.#canvas.className = 'cfg-pad';
 		this.#canvas.width = padSize;
 		this.#canvas.height = padSize;
+		this.#canvas.setAttribute('aria-disabled', String(this.disabled));
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#x = input(owner.doc);
 		this.#y = input(owner.doc);
+		this.#x.disabled = this.disabled;
+		this.#y.disabled = this.disabled;
 		const fields = el(owner.doc, 'div', 'cfg-vector cfg-vector--pad');
 		fields.append(axis(owner.doc, 'X', this.#x), axis(owner.doc, 'Y', this.#y));
 		this.field.append(this.#canvas, fields);
@@ -143,6 +147,9 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 	}
 
 	#pointer(event: PointerEvent) {
+		if (this.disabled) {
+			return;
+		}
 		event.preventDefault();
 		this.#canvas.setPointerCapture(event.pointerId);
 		const bounds = measure(this.#canvas);
@@ -186,6 +193,8 @@ export class Interval<T extends Record<string, unknown>, K extends keyof T> exte
 		this.#options = options;
 		this.#min = input(owner.doc);
 		this.#max = input(owner.doc);
+		this.#min.disabled = this.disabled;
+		this.#max.disabled = this.disabled;
 		const row = el(owner.doc, 'div', 'cfg-vector');
 		row.append(axis(owner.doc, 'Min', this.#min), axis(owner.doc, 'Max', this.#max));
 		this.field.append(row);
@@ -234,6 +243,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		this.#canvas.className = 'cfg-bezier';
 		this.#canvas.width = bezierSize;
 		this.#canvas.height = bezierSize;
+		this.#canvas.setAttribute('aria-disabled', String(this.disabled));
 		this.#ctx = this.#canvas.getContext('2d');
 		this.field.append(this.#canvas, this.#fields(), this.#presets(options));
 		this.#canvas.addEventListener('pointerdown', (event) => this.#pointer(event));
@@ -266,6 +276,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		for (const label of ['x1', 'y1', 'x2', 'y2']) {
 			const field = input(this.owner.doc);
 			field.step = '0.01';
+			field.disabled = this.disabled;
 			field.addEventListener('input', () => this.#update());
 			this.#inputs.push(field);
 			row.append(axis(this.owner.doc, label, field));
@@ -280,6 +291,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 			button.type = 'button';
 			button.className = 'cfg-choice';
 			button.textContent = preset.label;
+			button.disabled = this.disabled;
 			button.addEventListener('click', () => this.set(preset.value));
 			row.append(button);
 		}
@@ -293,16 +305,22 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 	}
 
 	#pointer(event: PointerEvent) {
+		if (this.disabled) {
+			return;
+		}
 		event.preventDefault();
 		const bounds = measure(this.#canvas);
 		const value = this.get();
-		const h1 = Math.hypot(event.clientX - bounds.left - value[0] * bounds.width, event.clientY - bounds.top);
-		const h2 = Math.hypot(event.clientX - bounds.left - value[2] * bounds.width, event.clientY - bounds.top);
-		const handle = h1 <= h2 ? 0 : 2;
+		const domain = bezierDomain(value);
+		const first = handlePoint(bounds, value[0], value[1], domain);
+		const second = handlePoint(bounds, value[2], value[3], domain);
+		const h1 = Math.hypot(event.clientX - first.x, event.clientY - first.y);
+		const h2 = Math.hypot(event.clientX - second.x, event.clientY - second.y);
+		const handle = h1 <= theme.metrics.bezierHandleHitRadius || h1 <= h2 ? 0 : 2;
 		const update = (pointer: PointerEvent) => {
 			const next: BezierTuple = [...this.get()];
 			next[handle] = snap(clamp((pointer.clientX - bounds.left) / bounds.width, 0, 1), 0.01);
-			next[handle + 1] = snap(clamp(1 - (pointer.clientY - bounds.top) / bounds.height, -2, 2), 0.01);
+			next[handle + 1] = snap(clamp(yValue(pointer.clientY - bounds.top, bounds.height, domain), -2, 2), 0.01);
 			this.#binding.set(next);
 			this.render();
 			this.emit('input');
@@ -329,6 +347,13 @@ function measure(canvas: HTMLCanvasElement) {
 		top: rect.top,
 		width: Math.max(1, rect.width),
 		height: Math.max(1, rect.height),
+	};
+}
+
+function handlePoint(bounds: { left: number; top: number; width: number; height: number }, x: number, y: number, domain: { min: number; max: number }) {
+	return {
+		x: bounds.left + clamp(x, 0, 1) * bounds.width,
+		y: bounds.top + yPixel(y, bounds.height, domain),
 	};
 }
 
@@ -361,7 +386,7 @@ function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: 
 	ctx.stroke();
 	ctx.fillStyle = theme.palette.blue;
 	ctx.beginPath();
-	ctx.arc(clamp(x, 0, padSize), clamp(y, 0, padSize), 4, 0, Math.PI * 2);
+	ctx.arc(clamp(x, 0, padSize), clamp(y, 0, padSize), theme.metrics.bezierHandleRadius, 0, Math.PI * 2);
 	ctx.fill();
 }
 
@@ -369,7 +394,8 @@ function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple) {
 	if (!ctx) {
 		return;
 	}
-	const point = (x: number, y: number): [number, number] => [x * bezierSize, (1 - clamp(y, 0, 1)) * bezierSize];
+	const domain = bezierDomain(value);
+	const point = (x: number, y: number): [number, number] => [clamp(x, 0, 1) * bezierSize, yPixel(y, bezierSize, domain)];
 	const x1 = value[0] ?? 0;
 	const y1 = value[1] ?? 0;
 	const x2 = value[2] ?? 0;
@@ -381,9 +407,59 @@ function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple) {
 	ctx.clearRect(0, 0, bezierSize, bezierSize);
 	ctx.fillStyle = theme.canvas.panel;
 	ctx.fillRect(0, 0, bezierSize, bezierSize);
+	ctx.lineWidth = 1;
+	ctx.strokeStyle = theme.canvas.grid;
+	ctx.beginPath();
+	ctx.moveTo(0, yPixel(0, bezierSize, domain));
+	ctx.lineTo(bezierSize, yPixel(1, bezierSize, domain));
+	ctx.moveTo(bezierSize / 2, 0);
+	ctx.lineTo(bezierSize / 2, bezierSize);
+	ctx.moveTo(0, yPixel((domain.min + domain.max) / 2, bezierSize, domain));
+	ctx.lineTo(bezierSize, yPixel((domain.min + domain.max) / 2, bezierSize, domain));
+	ctx.stroke();
+	ctx.strokeStyle = theme.canvas.guide;
+	ctx.beginPath();
+	ctx.moveTo(ax, ay);
+	ctx.lineTo(bx, by);
+	ctx.moveTo(dx, dy);
+	ctx.lineTo(cx, cy);
+	ctx.stroke();
+	ctx.lineWidth = 2;
 	ctx.strokeStyle = theme.palette.blue;
 	ctx.beginPath();
 	ctx.moveTo(ax, ay);
 	ctx.bezierCurveTo(bx, by, cx, cy, dx, dy);
+	ctx.stroke();
+	drawHandle(ctx, bx, by, theme.palette.gold);
+	drawHandle(ctx, cx, cy, theme.palette.blue);
+	drawHandle(ctx, ax, ay, theme.canvas.muted);
+	drawHandle(ctx, dx, dy, theme.canvas.muted);
+}
+
+function bezierDomain(value: BezierTuple) {
+	const min = Math.min(0, value[1] ?? 0, value[3] ?? 0);
+	const max = Math.max(1, value[1] ?? 0, value[3] ?? 0);
+	if (min === 0 && max === 1) {
+		return { min, max };
+	}
+	const pad = (max - min) * 0.08;
+	return { min: Math.max(-2, min - pad), max: Math.min(2, max + pad) };
+}
+
+function yPixel(value: number, height: number, domain: { min: number; max: number }) {
+	return (1 - (clamp(value, domain.min, domain.max) - domain.min) / (domain.max - domain.min || 1)) * height;
+}
+
+function yValue(pixel: number, height: number, domain: { min: number; max: number }) {
+	return domain.min + (1 - pixel / Math.max(1, height)) * (domain.max - domain.min);
+}
+
+function drawHandle(ctx: CanvasRenderingContext2D, x: number, y: number, fill: string) {
+	ctx.lineWidth = 2;
+	ctx.fillStyle = fill;
+	ctx.strokeStyle = theme.canvas.panel;
+	ctx.beginPath();
+	ctx.arc(x, y, theme.metrics.bezierHandleRadius, 0, Math.PI * 2);
+	ctx.fill();
 	ctx.stroke();
 }

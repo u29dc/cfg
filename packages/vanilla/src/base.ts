@@ -58,6 +58,7 @@ export abstract class Base<T> implements Control<T> {
 	readonly field: HTMLElement;
 	readonly serialize: boolean;
 	readonly owner: Owner;
+	readonly disabled: boolean;
 	readonly #events = new Events<T>();
 	readonly #initial: T;
 	readonly #cleanups: (() => void)[] = [];
@@ -68,12 +69,13 @@ export abstract class Base<T> implements Control<T> {
 		this.id = owner.create(kind, options?.id);
 		this.label = options?.label ?? label(this.id);
 		this.serialize = options?.serialize ?? true;
+		this.disabled = options?.disabled ?? false;
 		this.#initial = clone(initial);
 
 		this.element = el(owner.doc, 'div', 'cfg-control');
 		this.element.dataset['cfgControl'] = kind;
 		this.element.dataset['cfgId'] = this.id;
-		this.element.dataset['cfgDisabled'] = String(options?.disabled ?? false);
+		this.element.dataset['cfgDisabled'] = String(this.disabled);
 
 		const labelNode = el(owner.doc, 'label', 'cfg-control__label');
 		labelNode.textContent = this.label;

@@ -50,6 +50,7 @@ export class Monitor<T> extends Base<T> {
 export class Log extends Base<readonly string[]> implements LogMonitor {
 	readonly #lines: string[] = [];
 	readonly #limit: number;
+	readonly #rows: number;
 	readonly #interval: number;
 	readonly #readout: HTMLElement;
 	#dirty = true;
@@ -58,10 +59,11 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 	constructor(owner: Owner, options: LogOptions) {
 		super(owner, 'log-monitor', { ...options, serialize: false }, []);
 		this.#limit = Math.max(1, Math.floor(options.bufferSize ?? theme.metrics.logBuffer));
+		this.#rows = clamp(Math.floor(options.rows ?? theme.metrics.logRows), 1, theme.metrics.logRowsMax);
 		this.#interval = theme.metrics.millisPerSecond / (options.throttleHz ?? theme.metrics.monitorHz);
 		this.#readout = owner.doc.createElement('pre');
 		this.#readout.className = 'cfg-log';
-		this.#readout.dataset['cfgRows'] = String(clamp(Math.floor(options.rows ?? theme.metrics.logRows), 1, theme.metrics.logRowsMax));
+		this.#readout.dataset['cfgRows'] = String(this.#rows);
 		this.field.append(this.#readout);
 	}
 
@@ -100,6 +102,6 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 	}
 
 	protected render() {
-		this.#readout.textContent = this.#lines.join('\n');
+		this.#readout.textContent = this.#lines.slice(-this.#rows).join('\n');
 	}
 }

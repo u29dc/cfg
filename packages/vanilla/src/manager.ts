@@ -1,7 +1,9 @@
-import type { Cfg, CfgOptions, PaneOptions, SettingsSnapshot } from '@u29dc/cfg-core';
+import type { Cfg, CfgOptions, PaneOptions, SettingsSnapshot, ThemeMode } from '@u29dc/cfg-core';
 import { documentOf, Engine } from '@u29dc/cfg-core';
 import type { Managed } from './base';
 import { Pane } from './pane';
+
+const themes = new Set<ThemeMode>(['system', 'light', 'dark']);
 
 export class Manager implements Cfg {
 	readonly doc: Document;
@@ -19,6 +21,7 @@ export class Manager implements Cfg {
 		this.#root.classList.add('cfg-root');
 		this.#root.dataset['cfgPosition'] = options.position ?? 'top-right';
 		this.#root.dataset['cfgScheduler'] = this.engine.scheduler;
+		this.setTheme(options.theme ?? 'system');
 		if (this.#ownsRoot) {
 			this.doc.body.append(this.#root);
 		}
@@ -30,6 +33,18 @@ export class Manager implements Cfg {
 		this.#panes.add(pane);
 		this.#root.append(pane.element);
 		return pane;
+	}
+
+	getTheme(): ThemeMode {
+		const value = this.#root.dataset['cfgTheme'];
+		return themes.has(value as ThemeMode) ? (value as ThemeMode) : 'system';
+	}
+
+	setTheme(theme: ThemeMode): void {
+		if (!themes.has(theme)) {
+			throw new Error(`cfg theme must be "system", "light", or "dark"; received "${String(theme)}"`);
+		}
+		this.#root.dataset['cfgTheme'] = theme;
 	}
 
 	beginFrame(time: number) {
@@ -87,6 +102,7 @@ export class Manager implements Cfg {
 			this.#root.remove();
 		} else {
 			this.#root.classList.remove('cfg-root');
+			delete this.#root.dataset['cfgTheme'];
 		}
 	}
 

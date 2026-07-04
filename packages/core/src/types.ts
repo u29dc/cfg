@@ -2,6 +2,7 @@ export type SchedulerMode = 'external' | 'internal';
 export type ControlEvent = 'input' | 'change';
 export type ChoiceValue = string | number | boolean;
 export type Width = 'compact' | 'default' | 'wide';
+export type ThemeMode = 'system' | 'light' | 'dark';
 export type Clock = () => number;
 export type Raf = (callback: (time: number) => void) => number;
 export type CancelRaf = (id: number) => void;
@@ -45,6 +46,7 @@ export interface Theme {
 		graphHistory: number;
 		graphHistoryMax: number;
 		graphMinHistory: number;
+		graphSmoothing: number;
 		profileHistory: number;
 		profileLabelMax: number;
 		profilerRows: number;
@@ -56,8 +58,14 @@ export interface Theme {
 		profilerHeight: number;
 		padSize: number;
 		bezierSize: number;
+		bezierHandleRadius: number;
+		bezierHandleHitRadius: number;
 		colorSwatchSize: number;
 		paletteSwatchSize: number;
+		colorPickerWidth: number;
+		colorPickerHeight: number;
+		colorSliderHeight: number;
+		colorCheckerSize: number;
 		monitorHz: number;
 		logRows: number;
 		logRowsMax: number;
@@ -69,6 +77,7 @@ export interface CfgOptions {
 	scheduler?: SchedulerMode;
 	root?: HTMLElement;
 	position?: 'top-right';
+	theme?: ThemeMode;
 	textHz?: number;
 	clock?: Clock;
 	raf?: Raf;
@@ -235,6 +244,8 @@ export interface GraphOptions extends ControlOptions {
 	max?: number;
 	unit?: string;
 	history?: number;
+	smoothing?: number | false;
+	readout?: 'smoothed' | 'raw';
 	autoscale?: boolean;
 	target?: number;
 	warning?: number;
@@ -377,6 +388,8 @@ export interface Pane extends Host {
 
 export interface Cfg {
 	pane(options: PaneOptions): Pane;
+	getTheme(): ThemeMode;
+	setTheme(theme: ThemeMode): void;
 	beginFrame(time: number): void;
 	endFrame(time?: number): void;
 	renderFrame(time?: number): void;

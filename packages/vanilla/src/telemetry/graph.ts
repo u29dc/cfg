@@ -13,6 +13,8 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 	readonly #series: Series[];
 	readonly #options: GraphOptions;
 	readonly #mode: Mode;
+	readonly #smoothing: number;
+	readonly #readoutMode: 'smoothed' | 'raw';
 	#dirty = true;
 	#paused = false;
 
@@ -29,6 +31,9 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		this.#options = options;
 		this.#mode = mode;
 		const history = Math.floor(clamp(options.history ?? theme.metrics.graphHistory, theme.metrics.graphMinHistory, theme.metrics.graphHistoryMax));
+		const defaultSmoothing = mode === 'fps' || mode === 'frame' ? theme.metrics.graphSmoothing : 1;
+		this.#smoothing = options.smoothing === false ? 1 : Math.max(1, Math.floor(options.smoothing ?? defaultSmoothing));
+		this.#readoutMode = options.readout ?? (this.#smoothing > 1 ? 'smoothed' : 'raw');
 		const series = options.series?.length ? options.series : [{ label: options.label ?? mode }];
 		this.#series = series.map((item, index) => new Series(seriesOptions(item, index, history)));
 		this.#canvas = owner.doc.createElement('canvas');
@@ -114,7 +119,7 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 			ctx.stroke();
 		}
 		for (const series of this.#series) {
-			drawSeries(ctx, series, range.min, range.max, width, height);
+			drawSeries(ctx, series, range.min, range.max, width, height, this.#smoothing);
 		}
 	}
 
@@ -125,7 +130,8 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 			if (!series) {
 				continue;
 			}
-			result += `${index === 0 ? '' : ' / '}${text(series.ring.latest())}`;
+			const value = this.#readoutMode === 'raw' ? series.ring.latest() : latest(series, this.#smoothing);
+			result += `${index === 0 ? '' : ' / '}${readout(value, this.#mode)}`;
 		}
 		return `${result}${this.#options.unit ?? ''}`;
 	}
@@ -151,7 +157,7 @@ function yOf(value: number, min: number, max: number, canvasHeight: number) {
 	return canvasHeight - clamp((value - min) / (max - min || 1), 0, 1) * canvasHeight;
 }
 
-function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, max: number, width: number, height: number) {
+function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, max: number, width: number, height: number, smoothing: number) {
 	const count = series.ring.count;
 	if (count < 2) {
 		return;
@@ -160,7 +166,7 @@ function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, 
 	ctx.strokeStyle = series.color;
 	ctx.beginPath();
 	for (let column = 0; column < columns; column += 1) {
-		const value = sample(series, column, columns, count);
+		const value = sample(series, column, columns, count, smoothing);
 		const x = (column / Math.max(1, columns - 1)) * width;
 		const y = yOf(value, min, max, height);
 		if (column === 0) {
@@ -172,17 +178,36 @@ function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, 
 	ctx.stroke();
 }
 
-function sample(series: Series, column: number, columns: number, count: number) {
+function sample(series: Series, column: number, columns: number, count: number, smoothing: number) {
 	if (count <= columns) {
-		return series.ring.at(column);
+		return average(series, Math.max(0, column - smoothing + 1), column + 1);
 	}
 	const start = Math.floor((column / columns) * count);
 	const end = Math.max(start + 1, Math.floor(((column + 1) / columns) * count));
+	return average(series, Math.max(0, start - smoothing + 1), end);
+}
+
+function average(series: Series, start: number, end: number) {
 	let total = 0;
 	for (let index = start; index < end; index += 1) {
 		total += series.ring.at(index);
 	}
 	return total / (end - start);
+}
+
+function latest(series: Series, smoothing: number) {
+	const count = series.ring.count;
+	return count === 0 ? 0 : average(series, Math.max(0, count - smoothing), count);
+}
+
+function readout(value: number, mode: Mode) {
+	if (mode === 'fps') {
+		return String(Math.round(value));
+	}
+	if (mode === 'frame') {
+		return value.toFixed(1);
+	}
+	return text(value);
 }
 
 function seriesOptions(item: { id?: string; label?: string; color?: string }, index: number, size: number) {

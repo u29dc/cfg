@@ -1,5 +1,6 @@
 import { bezierPresets, defaultBezier, theme } from 'cfg';
 
+export const cfgThemeOptions = ['system', 'light', 'dark'] as const;
 export const modeOptions = ['calm', 'normal', 'intense'] as const;
 export const densityOptions = ['low', 'medium', 'high'] as const;
 export const placementOptions = ['nw', 'ne', 'sw', 'se'] as const;

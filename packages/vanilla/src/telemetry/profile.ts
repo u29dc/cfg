@@ -104,7 +104,7 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 			if (!entry) {
 				continue;
 			}
-			result += `${index === 0 ? '' : '  '}${entry.label} ${text(entry.latest)}ms`;
+			result += `${index === 0 ? '' : '\n'}${entry.label} ${text(entry.latest)}ms`;
 		}
 		return result || 'no samples';
 	}
