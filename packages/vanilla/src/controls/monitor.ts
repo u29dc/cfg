@@ -63,7 +63,7 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 		this.#interval = 1_000 / (options.throttleHz ?? defaultHz);
 		this.#readout = owner.doc.createElement('pre');
 		this.#readout.className = 'cfg-log';
-		this.#readout.dataset['cfgRows'] = String(options.rows ?? 4);
+		this.#readout.style.maxBlockSize = `${Math.max(1, Math.floor(options.rows ?? 4)) * 1.2}em`;
 		this.field.append(this.#readout);
 	}
 

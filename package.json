@@ -34,7 +34,7 @@
 		"build:lib": "bun scripts/build.ts",
 		"build:demo": "vite build",
 		"test": "bun test",
-		"test:browser": "playwright test",
+		"test:browser": "bun run build:demo && playwright test",
 		"util:format": "biome format --write .",
 		"util:lint": "biome check . --max-diagnostics 500",
 		"util:types": "bunx tsgo --noEmit",

@@ -1,12 +1,102 @@
+* {
+	box-sizing: border-box;
+}
+
 html,
 body {
 	margin: 0;
 	min-height: 100%;
-	background: #111315;
+	background: #101316;
 	color: #e6e8eb;
 	font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+button,
+input,
+select,
+textarea {
+	font: inherit;
+}
+
 #demo-root {
 	min-height: 100vh;
+	overflow: hidden;
+}
+
+.demo-stage {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	background: linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px), linear-gradient(0deg, rgb(255 255 255 / 4%) 1px, transparent 1px), #101316;
+	background-size: 48px 48px;
+}
+
+.demo-canvas {
+	inline-size: 100vw;
+	block-size: 100vh;
+}
+
+.demo-hud,
+.demo-state {
+	position: fixed;
+	inset-inline-start: 16px;
+	border: 1px solid rgb(255 255 255 / 13%);
+	border-radius: 6px;
+	background: rgb(11 14 17 / 82%);
+	box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+	backdrop-filter: blur(14px);
+}
+
+.demo-hud {
+	inset-block-start: 16px;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, max-content));
+	gap: 10px;
+	align-items: center;
+	max-inline-size: min(760px, calc(100vw - 340px));
+	min-block-size: 36px;
+	padding: 8px 10px;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.demo-hud strong {
+	color: #ffffff;
+	font-size: 12px;
+}
+
+.demo-hud span {
+	min-inline-size: 0;
+	color: #aab4c0;
+	font-size: 11px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.demo-state {
+	inset-block-end: 16px;
+	inline-size: min(340px, calc(100vw - 32px));
+	max-block-size: min(220px, calc(100vh - 96px));
+	margin: 0;
+	padding: 10px;
+	overflow: auto;
+	color: #c7d1dc;
+	font-size: 11px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+	.demo-hud {
+		inset-inline-end: 8px;
+		inset-inline-start: 8px;
+		inset-block-start: auto;
+		inset-block-end: 8px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		max-inline-size: none;
+	}
+
+	.demo-state {
+		display: none;
+	}
 }

@@ -273,7 +273,6 @@
 }
 
 .cfg-log {
-	max-block-size: calc(1.2em * attr(data-cfg-rows number, 4));
 	margin: 0;
 	white-space: pre;
 }
