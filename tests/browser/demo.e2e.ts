@@ -135,18 +135,59 @@ test('theme propagation and custom controls render without native chrome', async
 				canvas: Math.round(canvas.getBoundingClientRect().width),
 				canvasHeight: Math.round(canvas.getBoundingClientRect().height),
 				field: Math.round(field.getBoundingClientRect().width),
+				ratio: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
 				backingWidth: canvas.width,
 				backingHeight: canvas.height,
 			};
 		}, id);
 		expect(width.canvas).toBe(width.field);
-		expect(width.backingWidth).toBe(width.canvas);
-		expect(width.backingHeight).toBe(width.canvasHeight);
+		expect(width.backingWidth).toBe(Math.round(width.canvas * width.ratio));
+		expect(width.backingHeight).toBe(Math.round(width.canvasHeight * width.ratio));
 	}
 
 	const selected = await page.locator('[data-cfg-id="mode"] button[aria-pressed="true"]').evaluate((node) => getComputedStyle(node).backgroundColor);
 	const unselected = await page.locator('[data-cfg-id="mode"] button', { hasText: 'calm' }).evaluate((node) => getComputedStyle(node).backgroundColor);
 	expect(selected).not.toBe(unselected);
+});
+
+test('vector canvases settle to full-width backing stores before interaction', async ({ page }) => {
+	await page.goto('/');
+	await page.waitForFunction(() => {
+		const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+		return ['pad', 'easing'].every((id) => {
+			const canvas = document.querySelector<HTMLCanvasElement>(`[data-cfg-id="${id}"] canvas`);
+			if (!canvas) {
+				return false;
+			}
+			const rect = canvas.getBoundingClientRect();
+			return rect.width > rect.height && canvas.width === Math.round(rect.width * ratio) && canvas.height === Math.round(rect.height * ratio);
+		});
+	});
+	const snapshots = await page.evaluate(() => {
+		const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+		return ['pad', 'easing'].map((id) => {
+			const canvas = document.querySelector<HTMLCanvasElement>(`[data-cfg-id="${id}"] canvas`);
+			if (!canvas) {
+				throw new Error(`${id} canvas missing`);
+			}
+			const rect = canvas.getBoundingClientRect();
+			return {
+				id,
+				cssWidth: Math.round(rect.width),
+				cssHeight: Math.round(rect.height),
+				expectedBackingWidth: Math.round(rect.width * ratio),
+				expectedBackingHeight: Math.round(rect.height * ratio),
+				backingWidth: canvas.width,
+				backingHeight: canvas.height,
+				ratio,
+			};
+		});
+	});
+	for (const snapshot of snapshots) {
+		expect(snapshot.cssWidth).toBeGreaterThan(snapshot.cssHeight);
+		expect(snapshot.backingWidth).toBe(snapshot.expectedBackingWidth);
+		expect(snapshot.backingHeight).toBe(snapshot.expectedBackingHeight);
+	}
 });
 
 test('palette, settings actions, bounded logs, and disposal work', async ({ page }) => {

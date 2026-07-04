@@ -284,8 +284,12 @@ export class Pane implements PaneApi {
 	}
 
 	setContainerHidden(hidden: boolean): void {
+		const wasHidden = this.#containerHidden;
 		this.#containerHidden = hidden;
 		this.element.hidden = hidden;
+		if (wasHidden && !hidden) {
+			this.#refreshVisible();
+		}
 	}
 
 	clock(): number {
@@ -379,6 +383,7 @@ export class Pane implements PaneApi {
 			}
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
+			this.refresh();
 		};
 		animation.oncancel = () => {
 			if (this.#animation !== animation) {
@@ -400,6 +405,19 @@ export class Pane implements PaneApi {
 		if (this.#parent) {
 			this.#parent.#invalidateHeight();
 		}
+	}
+
+	#refreshVisible() {
+		const view = this.doc.defaultView;
+		if (!view) {
+			this.refresh();
+			return;
+		}
+		view.requestAnimationFrame(() => {
+			if (!this.#containerHidden && !this.#disposed) {
+				this.refresh();
+			}
+		});
 	}
 }
 

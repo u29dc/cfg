@@ -120,6 +120,7 @@
 	font-variant-numeric: tabular-nums;
 	color: var(--cfg-container-fg);
 	pointer-events: none;
+	scrollbar-width: none;
 	-webkit-tap-highlight-color: transparent;
 }
 
@@ -129,6 +130,12 @@
 }
 
 .cfg-root :where([hidden]) {
+	display: none;
+}
+
+.cfg-root::-webkit-scrollbar {
+	inline-size: 0;
+	block-size: 0;
 	display: none;
 }
 
@@ -274,6 +281,8 @@
 }
 
 .cfg-pane::-webkit-scrollbar {
+	inline-size: 0;
+	block-size: 0;
 	display: none;
 }
 
