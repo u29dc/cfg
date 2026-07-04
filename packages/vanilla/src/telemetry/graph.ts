@@ -3,6 +3,7 @@ import { clamp, output, Series, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { fit, observeCanvas } from '../utils/canvas';
 import { color } from '../utils/color';
+import { canvasTheme } from '../utils/theme';
 
 type Mode = 'graph' | 'waveform' | 'fps' | 'frame';
 
@@ -116,13 +117,14 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 			return;
 		}
 		const { width, height, scale } = fit(this.#canvas, theme.metrics.graphWidth, theme.metrics.graphHeight);
+		const colors = canvasTheme(this.#canvas);
 		const range = this.#range();
 		ctx.clearRect(0, 0, width, height);
-		ctx.fillStyle = theme.telemetry.background;
+		ctx.fillStyle = colors.surface;
 		ctx.fillRect(0, 0, width, height);
-		this.#drawTarget(ctx, range, width, height, scale);
+		this.#drawTarget(ctx, range, width, height, scale, colors.guide);
 		for (const series of this.#series) {
-			drawSeries(ctx, series, range.min, range.max, width, height, this.#smoothing);
+			drawSeries(ctx, series, range.min, range.max, width, height, scale, this.#smoothing);
 		}
 	}
 
@@ -155,7 +157,7 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		return Number.isFinite(min) && Number.isFinite(max) && min !== max ? { min, max } : { min: 0, max: 1 };
 	}
 
-	#drawTarget(ctx: CanvasRenderingContext2D, range: { min: number; max: number }, width: number, height: number, scale: number) {
+	#drawTarget(ctx: CanvasRenderingContext2D, range: { min: number; max: number }, width: number, height: number, scale: number, stroke: string) {
 		const target = this.#options.target;
 		if (target === undefined) {
 			return;
@@ -163,7 +165,7 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		const y = yOf(target, range.min, range.max, height);
 		ctx.save();
 		ctx.lineWidth = Math.max(1, scale);
-		ctx.strokeStyle = theme.telemetry.target;
+		ctx.strokeStyle = stroke;
 		ctx.setLineDash([3 * scale, 3 * scale]);
 		ctx.beginPath();
 		ctx.moveTo(0, y);
@@ -186,12 +188,13 @@ function yOf(value: number, min: number, max: number, canvasHeight: number) {
 	return canvasHeight - clamp((value - min) / (max - min || 1), 0, 1) * canvasHeight;
 }
 
-function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, max: number, width: number, height: number, smoothing: number) {
+function drawSeries(ctx: CanvasRenderingContext2D, series: Series, min: number, max: number, width: number, height: number, scale: number, smoothing: number) {
 	const count = series.ring.count;
 	if (count < 2) {
 		return;
 	}
 	const columns = Math.max(2, Math.min(count, Math.floor(width)));
+	ctx.lineWidth = Math.max(1, scale);
 	ctx.strokeStyle = series.color;
 	ctx.beginPath();
 	for (let column = 0; column < columns; column += 1) {

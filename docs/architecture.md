@@ -78,6 +78,7 @@ Every control extends the same small contract:
 interface Control<T> {
   readonly id: string;
   readonly label: string;
+  readonly element: HTMLElement;
   get(): T;
   set(value: T): void;
   refresh(): void;

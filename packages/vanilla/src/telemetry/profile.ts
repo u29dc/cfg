@@ -2,6 +2,7 @@ import type { Profiler, ProfilerOptions, ProfilerSnapshot } from '@u29dc/cfg-cor
 import { output, Profile, type ProfileEntry, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { fit } from '../utils/canvas';
+import { canvasTheme } from '../utils/theme';
 
 export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler {
 	readonly #profile: Profile;
@@ -9,12 +10,14 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 	readonly #ctx: CanvasRenderingContext2D | null;
 	readonly #readout: HTMLElement;
 	readonly #visible: ProfileEntry[] = [];
+	readonly #warning: number;
 	#dirty = true;
 
 	constructor(owner: Owner, options: ProfilerOptions) {
 		const profile = new Profile(options.history ?? theme.metrics.profileHistory);
 		super(owner, 'profiler', { ...options, serialize: false }, profile.snapshot());
 		this.#profile = profile;
+		this.#warning = options.warning ?? theme.metrics.frameBudget;
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-profiler';
 		this.#canvas.width = theme.metrics.profilerWidth;
@@ -115,7 +118,8 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 			return;
 		}
 		const { width, height, scale } = fit(this.#canvas, theme.metrics.profilerWidth, theme.metrics.profilerHeight);
-		let max: number = theme.metrics.frameBudget;
+		const colors = canvasTheme(this.#canvas);
+		let max: number = this.#warning;
 		for (const entry of this.#visible) {
 			max = Math.max(max, entry.max);
 		}
@@ -123,7 +127,7 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 		const inset = theme.metrics.profilerInset * scale;
 		const barInset = theme.metrics.profilerBarInset * scale;
 		ctx.clearRect(0, 0, width, height);
-		ctx.fillStyle = theme.telemetry.background;
+		ctx.fillStyle = colors.surface;
 		ctx.fillRect(0, 0, width, height);
 		for (let index = 0; index < this.#visible.length; index += 1) {
 			const entry = this.#visible[index];
@@ -131,9 +135,9 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 				continue;
 			}
 			const y = index * row;
-			ctx.fillStyle = entry.latest > theme.metrics.frameBudget ? theme.telemetry.warning : theme.telemetry.ok;
+			ctx.fillStyle = entry.latest > this.#warning ? theme.telemetry.warning : theme.telemetry.ok;
 			ctx.fillRect(0, y + barInset, (entry.latest / max) * width, Math.max(barInset, row - barInset * 2));
-			ctx.fillStyle = theme.telemetry.text;
+			ctx.fillStyle = colors.text;
 			ctx.font = `${theme.metrics.profilerFontSize * scale}px ui-monospace, monospace`;
 			ctx.fillText(entry.label, inset, y + row * 0.65);
 		}

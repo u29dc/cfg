@@ -8,6 +8,15 @@ export type Raf = (callback: (time: number) => void) => number;
 export type CancelRaf = (id: number) => void;
 export type ColorString = `#${string}` | `rgb(${string})` | `rgba(${string})`;
 
+export interface CanvasTheme {
+	surface: ColorString;
+	panel: ColorString;
+	grid: ColorString;
+	guide: ColorString;
+	muted: ColorString;
+	text: ColorString;
+}
+
 export interface Theme {
 	palette: {
 		blue: ColorString;
@@ -20,12 +29,9 @@ export interface Theme {
 		white: ColorString;
 		series: readonly ColorString[];
 	};
-	canvas: {
-		surface: ColorString;
-		panel: ColorString;
-		grid: ColorString;
-		guide: ColorString;
-		muted: ColorString;
+	canvas: CanvasTheme & {
+		light: CanvasTheme;
+		dark: CanvasTheme;
 	};
 	telemetry: {
 		background: ColorString;
@@ -82,7 +88,6 @@ export interface CfgOptions {
 	root?: HTMLElement;
 	position?: 'top-right';
 	theme?: ThemeMode;
-	textHz?: number;
 	clock?: Clock;
 	raf?: Raf;
 	cancelRaf?: CancelRaf;
@@ -92,7 +97,6 @@ export interface PaneOptions {
 	id?: string;
 	title: string;
 	collapsed?: boolean;
-	width?: Width;
 }
 
 export interface FolderOptions {
@@ -254,7 +258,6 @@ export interface GraphOptions extends ControlOptions {
 	readout?: 'smoothed' | 'raw';
 	autoscale?: boolean;
 	target?: number;
-	warning?: number;
 	series?: readonly GraphSeries[];
 }
 
@@ -313,6 +316,7 @@ export interface RuntimeItem extends Setting {
 export interface Control<T = unknown> extends Host {
 	readonly id: string;
 	readonly label: string;
+	readonly element: HTMLElement;
 	get(): T;
 	set(value: T): void;
 	refresh(): void;

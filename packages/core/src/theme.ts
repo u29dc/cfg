@@ -11,12 +11,28 @@ const palette = {
 	white: '#ffffff',
 } as const;
 
-const canvas = {
+const canvasDark = {
 	surface: '#0f141a',
 	panel: '#11161d',
 	grid: '#303a45',
 	guide: '#7d8590',
 	muted: '#aab4c0',
+	text: '#f1f4f8',
+} as const;
+
+const canvasLight = {
+	surface: '#e6e7ec',
+	panel: '#f3f4f7',
+	grid: '#c6c9d1',
+	guide: '#7a818f',
+	muted: '#8d93a0',
+	text: '#262a33',
+} as const;
+
+const canvas = {
+	...canvasDark,
+	light: canvasLight,
+	dark: canvasDark,
 } as const;
 
 export const theme = {

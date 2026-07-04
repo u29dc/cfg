@@ -45,6 +45,9 @@ export class Manager implements Cfg {
 			throw new Error(`cfg theme must be "system", "light", or "dark"; received "${String(theme)}"`);
 		}
 		this.#root.dataset['cfgTheme'] = theme;
+		for (const pane of this.#panes) {
+			pane.refresh();
+		}
 	}
 
 	beginFrame(time: number) {

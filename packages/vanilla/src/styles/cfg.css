@@ -995,3 +995,13 @@
 		inline-size: min(var(--cfg-pane-width), calc(100vw - 16px));
 	}
 }
+
+@media (max-width: 760px) and (hover: none) and (pointer: coarse) {
+	.cfg-root {
+		--cfg-font-size-control: 16px;
+		--cfg-font-size-readout: 14px;
+		--cfg-unit: 28px;
+		--cfg-swatch-size: 24px;
+		--cfg-pane-width: min(360px, calc(100vw - 16px));
+	}
+}

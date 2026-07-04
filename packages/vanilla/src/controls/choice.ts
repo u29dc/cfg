@@ -109,12 +109,38 @@ export class ChoiceControl<T extends Record<string, unknown>, K extends keyof T,
 			return;
 		}
 		event.preventDefault();
-		const last = this.#buttons.length - 1;
-		const next = event.key === 'Home' ? 0 : event.key === 'End' ? last : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? Math.max(0, index - 1) : Math.min(last, index + 1);
-		this.#buttons[next]?.focus();
-		const item = this.#options[next];
-		if (item && !item.disabled) {
+		const next = nextChoice(this.#buttons, index, event.key);
+		if (!next) {
+			return;
+		}
+		next.button.focus();
+		const item = this.#options[next.index];
+		if (item) {
 			this.#choose(item);
 		}
 	}
+}
+
+function nextChoice(buttons: readonly HTMLButtonElement[], index: number, key: string) {
+	if (key === 'Home') {
+		return enabledChoice(buttons, 0, 1);
+	}
+	if (key === 'End') {
+		return enabledChoice(buttons, buttons.length - 1, -1);
+	}
+	return enabledChoice(buttons, index + choiceDirection(key), choiceDirection(key));
+}
+
+function choiceDirection(key: string) {
+	return key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+}
+
+function enabledChoice(buttons: readonly HTMLButtonElement[], start: number, step: number) {
+	for (let index = start; index >= 0 && index < buttons.length; index += step) {
+		const button = buttons[index];
+		if (button && !button.disabled) {
+			return { button, index };
+		}
+	}
+	return undefined;
 }

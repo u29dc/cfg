@@ -85,12 +85,28 @@ export function observeCanvas(canvas: HTMLCanvasElement, render: () => void): ()
 
 function cssSize(canvas: HTMLCanvasElement, fallbackWidth: number, fallbackHeight: number) {
 	const rect = canvas.getBoundingClientRect();
-	const width = positive(rect.width) ?? positive(canvas.clientWidth) ?? fallbackWidth;
-	const height = positive(rect.height) ?? positive(canvas.clientHeight) ?? fallbackHeight;
+	const rectWidth = positive(rect.width);
+	const rectHeight = positive(rect.height);
+	if (rectWidth !== undefined && rectHeight !== undefined) {
+		return {
+			width: rectWidth,
+			height: rectHeight,
+			fromLayout: true,
+		};
+	}
+	const clientWidth = positive(canvas.clientWidth);
+	const clientHeight = positive(canvas.clientHeight);
+	if (clientWidth !== undefined && clientHeight !== undefined) {
+		return {
+			width: clientWidth,
+			height: clientHeight,
+			fromLayout: true,
+		};
+	}
 	return {
-		width,
-		height,
-		fromLayout: rect.width > 0 && rect.height > 0,
+		width: fallbackWidth,
+		height: fallbackHeight,
+		fromLayout: false,
 	};
 }
 

@@ -48,9 +48,23 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 		row.append(this.#toggle, this.#text);
 		this.#panel = this.#createPanel(owner.doc);
 		this.#panel.hidden = true;
+		this.#panel.id = `${this.id}-panel`;
+		this.#panel.setAttribute('role', 'group');
+		this.#panel.setAttribute('aria-label', `${this.label} color picker`);
+		this.#toggle.setAttribute('aria-controls', this.#panel.id);
 		this.field.append(row);
 		this.element.append(this.#panel);
 		this.#toggle.addEventListener('click', () => this.#setOpen(!this.#open));
+		this.#toggle.addEventListener('keydown', (event) => this.#closeKey(event));
+		this.#panel.addEventListener('keydown', (event) => this.#closeKey(event));
+		const closeOutside = (event: PointerEvent) => {
+			const targetNode = event.target instanceof Node ? event.target : null;
+			if (this.#open && targetNode && !this.element.contains(targetNode)) {
+				this.#setOpen(false);
+			}
+		};
+		owner.doc.addEventListener('pointerdown', closeOutside, true);
+		this.cleanup(() => owner.doc.removeEventListener('pointerdown', closeOutside, true));
 		this.#text.addEventListener('focus', () => {
 			this.#editing = true;
 		});
@@ -113,13 +127,24 @@ export class ColorControl<T extends Record<string, unknown>, K extends keyof T> 
 		this.emit('change');
 	}
 
-	#setOpen(open: boolean) {
+	#setOpen(open: boolean, restoreFocus = false) {
 		this.#open = open;
 		this.#panel.hidden = !open;
 		this.render();
 		if (open) {
 			requestAnimationFrame(() => this.#panel.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+		} else if (restoreFocus) {
+			this.#toggle.focus();
 		}
+	}
+
+	#closeKey(event: KeyboardEvent) {
+		if (event.key !== 'Escape' || !this.#open) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		this.#setOpen(false, true);
 	}
 
 	#createPanel(doc: Document) {

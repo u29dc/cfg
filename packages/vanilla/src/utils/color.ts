@@ -1,4 +1,5 @@
 import { clamp, theme } from '@u29dc/cfg-core';
+import { canvasTheme } from './theme';
 
 const hex = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i;
@@ -87,7 +88,7 @@ export function swatch(ctx: CanvasRenderingContext2D | null, value: string, size
 		return;
 	}
 	ctx.clearRect(0, 0, size, size);
-	ctx.fillStyle = theme.canvas.surface;
+	ctx.fillStyle = canvasTheme(ctx.canvas).surface;
 	ctx.fillRect(0, 0, size, size);
 	ctx.fillStyle = color(value);
 	ctx.fillRect(2, 2, size - 4, size - 4);

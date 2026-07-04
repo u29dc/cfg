@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 
 test('demo renders panes, canvas, and external RAF telemetry', async ({ page }) => {
@@ -32,6 +33,9 @@ test('demo renders panes, canvas, and external RAF telemetry', async ({ page }) 
 	});
 	expect(pixel.length).toBe(4);
 	expect(pixel[3]).toBe(255);
+
+	await mkdir('artifacts/browser-qa', { recursive: true });
+	await page.screenshot({ path: 'artifacts/browser-qa/cfg-demo-browser-qa.png' });
 });
 
 test('representative controls mutate bound and visible state', async ({ page }) => {
@@ -88,6 +92,24 @@ test('representative controls mutate bound and visible state', async ({ page }) 
 		)
 		.toBe(0.5);
 
+	const easing = page.locator('[data-cfg-id="easing"] canvas');
+	const easingBox = await easing.boundingBox();
+	if (!easingBox) {
+		throw new Error('easing bounds missing');
+	}
+	await easing.click({ position: { x: easingBox.width * 0.72, y: easingBox.height * 0.18 } });
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const demo = (window as DemoWindow).__cfgDemo;
+				if (!demo) {
+					throw new Error('cfg demo probe missing');
+				}
+				return demo.state.easing;
+			}),
+		)
+		.not.toEqual([0.25, 0.1, 0.25, 1]);
+
 	await page.locator('[data-cfg-id="fake-work"] input[type="checkbox"]').check();
 	await expect
 		.poll(() =>
@@ -109,12 +131,37 @@ test('theme propagation and custom controls render without native chrome', async
 	await expect(page.locator('.cfg-root')).toHaveAttribute('data-cfg-theme', 'dark');
 	await page.evaluate(() => (window as DemoWindow).__cfgDemo?.setTheme('light'));
 	await expect(page.locator('.cfg-root')).toHaveAttribute('data-cfg-theme', 'light');
+	const lightCanvasPixels = await page.evaluate(() => {
+		const read = (selector: string) => {
+			const canvas = document.querySelector<HTMLCanvasElement>(selector);
+			if (!canvas) {
+				throw new Error(`${selector} canvas missing`);
+			}
+			const data = canvas.getContext('2d')?.getImageData(4, 4, 1, 1).data;
+			return data ? [...data] : [];
+		};
+		return {
+			graph: read('[data-cfg-id="fps"] canvas'),
+			pad: read('[data-cfg-id="pad"] canvas'),
+		};
+	});
+	expect(lightCanvasPixels.graph[0]).toBeGreaterThan(200);
+	expect(lightCanvasPixels.pad[0]).toBeGreaterThan(200);
 
 	await expect(page.locator('[data-cfg-id="image"] input[type="file"]')).toBeHidden();
 	await expect(page.locator('[data-cfg-id="image"] .cfg-file-row .cfg-button')).toBeVisible();
 	await page.locator('[data-cfg-id="color"] .cfg-color-toggle').scrollIntoViewIfNeeded();
-	await page.locator('[data-cfg-id="color"] .cfg-color-toggle').click();
+	const colorToggle = page.locator('[data-cfg-id="color"] .cfg-color-toggle');
+	await colorToggle.click();
 	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeVisible();
+	await expect(colorToggle).toHaveAttribute('aria-controls', /color-panel/);
+	await page.keyboard.press('Escape');
+	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeHidden();
+	await expect(colorToggle).toBeFocused();
+	await colorToggle.click();
+	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeVisible();
+	await page.mouse.click(8, 8);
+	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeHidden();
 	await expect(page.locator('[data-cfg-id="easing"] canvas.cfg-bezier')).toBeVisible();
 	await expect(page.locator('[data-cfg-id="views"] .cfg-tabs__nav button').first()).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.locator('[data-cfg-id="view-status"]')).toBeVisible();
@@ -258,10 +305,23 @@ test('disabled tabs are skipped by keyboard and rejected by API', async ({ page 
 			],
 			initial: 'one',
 		});
+		const state = { mode: 'one' };
+		const choice = pane.segmented(state, 'mode', {
+			id: 'scratch-choice',
+			label: 'Choice',
+			options: [
+				{ label: 'One', value: 'one' },
+				{ label: 'Two', value: 'two', disabled: true },
+				{ label: 'Three', value: 'three' },
+			],
+		});
 		const changes: string[] = [];
+		const choiceChanges: string[] = [];
 		tab.on('change', (value) => changes.push(String(value)));
+		choice.on('change', (value) => choiceChanges.push(String(value)));
 		(window as ScratchWindow).__cfgTabsScratch = {
 			cfg,
+			choiceChanges: () => choiceChanges,
 			changes: () => changes,
 			selectDisabled: () => {
 				try {
@@ -281,6 +341,13 @@ test('disabled tabs are skipped by keyboard and rejected by API', async ({ page 
 	await expect(buttons.nth(2)).toBeFocused();
 	await expect(buttons.nth(2)).toHaveAttribute('aria-pressed', 'true');
 	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.changes())).toEqual(['three']);
+	const choices = page.locator('[data-cfg-id="scratch-choice"] button');
+	await expect(choices.nth(1)).toBeDisabled();
+	await choices.first().focus();
+	await page.keyboard.press('ArrowRight');
+	await expect(choices.nth(2)).toBeFocused();
+	await expect(choices.nth(2)).toHaveAttribute('aria-pressed', 'true');
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.choiceChanges())).toEqual(['three']);
 	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.selectDisabled())).toContain('rejected disabled page');
 	await page.evaluate(() => (window as ScratchWindow).__cfgTabsScratch?.cfg.dispose());
 });
@@ -541,6 +608,7 @@ type DemoWindow = Window & {
 			accent?: unknown;
 			color?: unknown;
 			density?: unknown;
+			easing: [number, number, number, number];
 			point: { x: number; y: number };
 			rotation: { x: number; y: number; z: number; w: number };
 			speed?: unknown;
@@ -569,6 +637,7 @@ type ScratchPane = {
 	folder: (label: string, options?: { id?: string }) => ScratchPane;
 	graph: (options: { id: string; label: string }) => ScratchGraph;
 	interval: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
+	segmented: (target: Record<string, unknown>, key: string, options: { id: string; label: string; options: { label: string; value: string; disabled?: boolean }[] }) => ScratchControl;
 	tab: (options: { id: string; label: string; tabs: { label: string; value: string; disabled?: boolean }[]; initial: string }) => ScratchTab;
 	xyPad: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
 };
@@ -599,6 +668,7 @@ type ScratchWindow = Window & {
 	};
 	__cfgTabsScratch?: {
 		cfg: ScratchCfg;
+		choiceChanges: () => string[];
 		changes: () => string[];
 		selectDisabled: () => string;
 	};
