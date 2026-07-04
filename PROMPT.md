@@ -27,6 +27,18 @@ unless there is a compelling structural reason, decompose large changes into
 clear modules, avoid spaghetti conditionals, avoid thin abstractions, and prefer
 structural simplification over merely working code.
 
+Also read and apply these frontend/design-engineering standards before any
+styling, layout, interaction, or browser-QA work:
+
+```text
+https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md
+https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/react-best-practices/SKILL.md
+https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/react-best-practices/AGENTS.md
+https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/web-design-guidelines/SKILL.md
+https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md
+https://raw.githubusercontent.com/emilkowalski/skills/main/skills/emil-design-eng/SKILL.md
+```
+
 Use the `$align` skill if it is available. If the skill is not available as a callable tool, manually apply `/Users/han/Git/dot/agents/skills/align/SKILL.md`.
 
 Apply the default TypeScript/library/package baseline. Do not choose Svelte, Next, Go, or Astro website variants. The target is a small library repository, not a website template.
