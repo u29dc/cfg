@@ -409,7 +409,8 @@
 }
 
 .cfg-control[data-cfg-control="button"],
-.cfg-control[data-cfg-control="button-group"] {
+.cfg-control[data-cfg-control="button-group"],
+.cfg-control[data-cfg-control="tab"] {
 	grid-template-columns: minmax(0, 1fr);
 }
 
@@ -424,7 +425,8 @@
 }
 
 .cfg-control[data-cfg-control="button"] .cfg-control__label,
-.cfg-control[data-cfg-control="button-group"] .cfg-control__label {
+.cfg-control[data-cfg-control="button-group"] .cfg-control__label,
+.cfg-control[data-cfg-control="tab"] .cfg-control__label {
 	display: none;
 }
 
@@ -666,6 +668,25 @@
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(0, 1fr);
 	gap: var(--cfg-unit-gap);
+}
+
+.cfg-tabs__pages {
+	min-inline-size: 0;
+	inline-size: 100%;
+}
+
+.cfg-tab-page {
+	contain: layout paint style;
+	background: transparent;
+}
+
+.cfg-tab-page > .cfg-folder__header {
+	display: none;
+}
+
+.cfg-tab-page > .cfg-folder__body {
+	padding: 0;
+	background: transparent;
 }
 
 .cfg-vector {

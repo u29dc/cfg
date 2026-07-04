@@ -278,6 +278,10 @@ export interface Control<T = unknown> extends Host {
     dispose(): void;
     on(event: ControlEvent, handler: (value: T) => void): () => void;
 }
+export interface Tab extends Control<string> {
+    readonly pages: readonly Pane[];
+    page(value: string | number): Pane;
+}
 export interface LogMonitor extends Control<readonly string[]> {
     push(message: string): void;
     clear(): void;
@@ -296,7 +300,7 @@ export interface Profiler extends Control<ProfilerSnapshot> {
 }
 export interface Host {
     folder(label: string, options?: FolderOptions): Pane;
-    tab(options: TabOptions): Pane;
+    tab(options: TabOptions): Tab;
     separator(label?: string): Control<void>;
     button(options: ButtonOptions): Control<void>;
     buttonGroup(options: ButtonGroupOptions): Control<void>;

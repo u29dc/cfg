@@ -20,6 +20,7 @@ import type {
 	Pane as PaneApi,
 	PaneOptions,
 	ProfilerOptions,
+	Tab as TabApi,
 	TabOptions,
 	TelemetryGraph,
 	TextOptions,
@@ -29,7 +30,7 @@ import type {
 	VectorOptions,
 } from '@u29dc/cfg-core';
 import { el } from '@u29dc/cfg-core';
-import type { Managed } from './base';
+import { Base, type Managed } from './base';
 import { Button, ButtonGroup, Separator } from './controls/action';
 import { ChoiceControl } from './controls/choice';
 import { ColorControl, PaletteControl } from './controls/color';
@@ -53,6 +54,7 @@ export class Pane implements PaneApi {
 	readonly #parent: Pane | undefined;
 	#animation: Animation | undefined;
 	#expandedHeight: number | undefined;
+	#containerHidden = false;
 	#collapsed = false;
 	#disposed = false;
 
@@ -98,48 +100,8 @@ export class Pane implements PaneApi {
 		return pane;
 	}
 
-	tab(options: TabOptions): Pane {
-		const folderOptions: FolderOptions = {};
-		if (options.id !== undefined) {
-			folderOptions.id = options.id;
-		}
-		const pane = this.folder(options.label ?? 'Tabs', folderOptions);
-		pane.element.classList.add('cfg-tabs');
-		const nav = el(this.doc, 'div', 'cfg-tabs__nav');
-		const tabs = options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : item));
-		const selectedValue = options.initial ?? tabs[0]?.value;
-		for (let index = 0; index < tabs.length; index += 1) {
-			const item = tabs[index];
-			if (!item) {
-				continue;
-			}
-			const button = this.doc.createElement('button');
-			button.type = 'button';
-			button.className = 'cfg-choice';
-			button.disabled = item.disabled ?? false;
-			button.textContent = item.label;
-			button.dataset['cfgValue'] = item.value;
-			button.setAttribute('aria-pressed', String(item.value === selectedValue));
-			button.dataset['cfgSelected'] = String(item.value === selectedValue);
-			button.addEventListener('click', () => {
-				selectTab(nav, item.value);
-			});
-			button.addEventListener('keydown', (event) => {
-				const nextButton = nextTabButton(nav, tabs.length, index, event.key);
-				if (!nextButton) {
-					return;
-				}
-				event.preventDefault();
-				nextButton.focus();
-				const nextValue = nextButton.dataset['cfgValue'];
-				if (nextValue) {
-					selectTab(nav, nextValue);
-				}
-			});
-			nav.append(button);
-		}
-		pane.#body.prepend(nav);
-		return pane;
+	tab(options: TabOptions): TabApi {
+		return this.#add(new TabGroup(this.#manager, this, options));
 	}
 
 	separator(label?: string): Control<void> {
@@ -301,7 +263,7 @@ export class Pane implements PaneApi {
 	}
 
 	visible(): boolean {
-		return !this.#collapsed && !this.#disposed && (this.#parent?.visible() ?? true);
+		return !this.#containerHidden && !this.#collapsed && !this.#disposed && (this.#parent?.visible() ?? true);
 	}
 
 	dispose(): void {
@@ -319,6 +281,11 @@ export class Pane implements PaneApi {
 
 	create(kind: string, requested?: string): string {
 		return this.#manager.create(kind, requested);
+	}
+
+	setContainerHidden(hidden: boolean): void {
+		this.#containerHidden = hidden;
+		this.element.hidden = hidden;
 	}
 
 	clock(): number {
@@ -436,6 +403,106 @@ export class Pane implements PaneApi {
 	}
 }
 
+class TabGroup extends Base<string> implements TabApi {
+	readonly pages: Pane[] = [];
+	readonly #buttons: HTMLButtonElement[] = [];
+	readonly #values: string[];
+	#selected: string;
+
+	constructor(manager: Manager, parent: Pane, options: TabOptions) {
+		const items = tabItems(options);
+		const initial = options.initial ?? items[0]?.value;
+		if (initial === undefined) {
+			throw new Error('tab control requires at least one tab');
+		}
+		super(parent, 'tab', options, initial);
+		this.#values = items.map((item) => item.value);
+		this.#selected = initial;
+		this.element.classList.add('cfg-tabs');
+
+		const nav = el(parent.doc, 'div', 'cfg-tabs__nav');
+		const pages = el(parent.doc, 'div', 'cfg-tabs__pages');
+		for (let index = 0; index < items.length; index += 1) {
+			const item = items[index];
+			if (!item) {
+				continue;
+			}
+			const page = new Pane(manager, { id: item.id ?? `${this.id}-${item.value}`, title: item.label }, parent);
+			page.element.classList.add('cfg-tab-page');
+			page.setContainerHidden(item.value !== this.#selected);
+			this.pages.push(page);
+			pages.append(page.element);
+			const button = parent.doc.createElement('button');
+			button.type = 'button';
+			button.className = 'cfg-choice';
+			button.disabled = item.disabled ?? false;
+			button.textContent = item.label;
+			button.dataset['cfgValue'] = item.value;
+			button.addEventListener('click', () => this.set(item.value));
+			button.addEventListener('keydown', (event) => this.#key(event, index));
+			this.#buttons.push(button);
+			nav.append(button);
+		}
+		this.field.append(nav, pages);
+		this.render();
+	}
+
+	get() {
+		return this.#selected;
+	}
+
+	set(value: string) {
+		if (!this.#values.includes(value)) {
+			throw new Error(`tab control rejected unknown page "${value}"`);
+		}
+		this.#selected = value;
+		this.render();
+		this.emit('change');
+	}
+
+	page(value: string | number) {
+		const page = typeof value === 'number' ? this.pages[value] : this.pages[this.#values.indexOf(value)];
+		if (!page) {
+			throw new Error(`tab page not found: ${String(value)}`);
+		}
+		return page;
+	}
+
+	override dispose() {
+		for (const page of this.pages) {
+			page.dispose();
+		}
+		this.pages.length = 0;
+		super.dispose();
+	}
+
+	protected render() {
+		for (let index = 0; index < this.#buttons.length; index += 1) {
+			const value = this.#values[index];
+			const selected = value === this.#selected;
+			const button = this.#buttons[index];
+			if (button) {
+				button.dataset['cfgSelected'] = String(selected);
+				button.setAttribute('aria-pressed', String(selected));
+			}
+			this.pages[index]?.setContainerHidden(!selected);
+		}
+	}
+
+	#key(event: KeyboardEvent, index: number) {
+		const nextButton = nextTabButton(this.#buttons, index, event.key);
+		if (!nextButton) {
+			return;
+		}
+		event.preventDefault();
+		nextButton.focus();
+		const value = nextButton.dataset['cfgValue'];
+		if (value) {
+			this.set(value);
+		}
+	}
+}
+
 function motion(nested: boolean): KeyframeAnimationOptions {
 	return {
 		duration: prefersReducedMotion() ? 0 : nested ? 80 : 150,
@@ -447,25 +514,20 @@ function prefersReducedMotion() {
 	return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function selectTab(nav: HTMLElement, value: string) {
-	for (const child of nav.children) {
-		const tab = child as HTMLElement;
-		const selected = tab.dataset['cfgValue'] === value;
-		tab.dataset['cfgSelected'] = String(selected);
-		tab.setAttribute('aria-pressed', String(selected));
-	}
+function tabItems(options: TabOptions) {
+	return options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : { ...item, value: String(item.value) }));
 }
 
-function nextTabButton(nav: HTMLElement, count: number, index: number, key: string) {
+function nextTabButton(buttons: readonly HTMLButtonElement[], index: number, key: string) {
 	let next = -1;
 	if (key === 'Home') {
 		next = 0;
 	} else if (key === 'End') {
-		next = count - 1;
+		next = buttons.length - 1;
 	} else if (key === 'ArrowLeft') {
 		next = Math.max(0, index - 1);
 	} else if (key === 'ArrowRight') {
-		next = Math.min(count - 1, index + 1);
+		next = Math.min(buttons.length - 1, index + 1);
 	}
-	return next === -1 ? undefined : (nav.children.item(next) as HTMLButtonElement | null | undefined);
+	return next === -1 ? undefined : buttons[next];
 }

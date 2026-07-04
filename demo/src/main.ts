@@ -158,7 +158,8 @@ choices.select(state, 'density', { id: 'density', label: 'Density', options: den
 choices.radioGrid(state, 'placement', { id: 'placement', label: 'Place', columns: 2, options: placementOptions });
 
 const views = controls.tab({ id: 'views', label: 'Views', tabs: ['Main', 'Debug'], initial: 'Main' });
-views.monitor({ id: 'view-status', label: 'State', get: () => state.mode });
+views.page('Main').monitor({ id: 'view-status', label: 'State', get: () => state.mode });
+views.page('Debug').monitor({ id: 'view-frame', label: 'Frame', get: () => frameCount });
 
 const vectors = controls.folder('Vectors');
 vectors.point(state, 'point', { id: 'point', label: 'Point', min: -1, max: 1, step: 0.01 });

@@ -117,8 +117,12 @@ test('theme propagation and custom controls render without native chrome', async
 	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeVisible();
 	await expect(page.locator('[data-cfg-id="easing"] canvas.cfg-bezier')).toBeVisible();
 	await expect(page.locator('[data-cfg-id="views"] .cfg-tabs__nav button').first()).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('[data-cfg-id="view-status"]')).toBeVisible();
+	await expect(page.locator('[data-cfg-id="view-frame"]')).toBeHidden();
 	await page.locator('[data-cfg-id="views"] .cfg-tabs__nav button', { hasText: 'Debug' }).click();
 	await expect(page.locator('[data-cfg-id="views"] .cfg-tabs__nav button', { hasText: 'Debug' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('[data-cfg-id="view-status"]')).toBeHidden();
+	await expect(page.locator('[data-cfg-id="view-frame"]')).toBeVisible();
 	expect(await page.locator('.cfg-input[type="number"]').count()).toBe(0);
 	for (const id of ['pad', 'easing']) {
 		const width = await page.locator(`[data-cfg-id="${id}"]`).evaluate((node, label) => {
