@@ -4,6 +4,9 @@ import { Base, type Owner } from '../base';
 import { Binding, bool, string } from '../binding';
 
 type RecordKey<T> = keyof T;
+const svgNs = 'http://www.w3.org/2000/svg';
+const dragThreshold = 2;
+const guideOffset = 20;
 
 export class Toggle<T extends Record<string, unknown>, K extends RecordKey<T>> extends Base<boolean> {
 	readonly #binding: Binding<boolean>;
@@ -47,6 +50,7 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 	readonly #options: NumberOptions;
 	readonly #number?: HTMLInputElement;
 	readonly #range?: HTMLInputElement;
+	readonly #drag?: NumberDragHandle;
 
 	constructor(owner: Owner, target: T, key: K, options: NumberOptions = {}, mode: 'number' | 'slider' | 'number-slider') {
 		const binding = new Binding(target, key, (value) => clean(value, options));
@@ -55,8 +59,10 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 		this.#options = options;
 
 		if (mode !== 'slider') {
-			this.#number = field(owner.doc, `${this.id}-input`, 'number', options);
-			this.field.append(this.#number);
+			const numberField = createNumberField(owner.doc, `${this.id}-input`, options);
+			this.#number = numberField.input;
+			this.#drag = numberField.drag;
+			this.field.append(numberField.element);
 		}
 		if (mode !== 'number') {
 			this.#range = field(owner.doc, `${this.id}-range`, 'range', options);
@@ -74,6 +80,13 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 			});
 			input.addEventListener('change', () => this.emit('change'));
 		}
+		this.#number?.addEventListener('keydown', (event) => this.#key(event));
+		this.#number?.addEventListener('keyup', (event) => {
+			if (keyStep(this.#options, event) !== 0) {
+				this.emit('change');
+			}
+		});
+		this.#number?.addEventListener('pointerdown', (event) => this.#pointer(event));
 		this.render();
 	}
 
@@ -96,6 +109,61 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 		if (this.#range && this.#range.value !== String(value)) {
 			this.#range.value = String(value);
 		}
+	}
+
+	#key(event: KeyboardEvent) {
+		const step = keyStep(this.#options, event);
+		if (step === 0) {
+			return;
+		}
+		event.preventDefault();
+		this.#binding.set(clean(this.get() + step, this.#options));
+		this.render();
+		this.emit('input');
+	}
+
+	#pointer(event: PointerEvent) {
+		if (!this.#number || !this.#drag || this.disabled || event.button !== 0) {
+			return;
+		}
+		const origin = this.get();
+		const scale = pointerScale(this.#options, origin);
+		const start = event.clientX;
+		let dragging = false;
+		this.#number.setPointerCapture(event.pointerId);
+		const move = (pointer: PointerEvent) => {
+			const delta = pointer.clientX - start;
+			if (!dragging && Math.abs(delta) < dragThreshold) {
+				return;
+			}
+			pointer.preventDefault();
+			if (!dragging) {
+				dragging = true;
+				this.#number?.blur();
+				this.#drag?.show();
+			}
+			const next = clean(origin + delta * scale, this.#options);
+			this.#binding.set(next);
+			this.render();
+			this.#drag?.render(origin, next, scale, this.#format(next));
+			this.emit('input');
+		};
+		const up = (pointer: PointerEvent) => {
+			move(pointer);
+			this.#number?.releasePointerCapture(pointer.pointerId);
+			this.#number?.removeEventListener('pointermove', move);
+			this.#number?.removeEventListener('pointerup', up);
+			this.#drag?.hide();
+			if (dragging) {
+				this.emit('change');
+			}
+		};
+		this.#number.addEventListener('pointermove', move);
+		this.#number.addEventListener('pointerup', up, { once: true });
+	}
+
+	#format(value: number) {
+		return this.#options.format ? this.#options.format(value) : format(value);
 	}
 }
 
@@ -150,9 +218,14 @@ export class Textual<T extends Record<string, unknown>, K extends RecordKey<T>> 
 function field(doc: Document, id: string, type: 'number' | 'range', options: NumberOptions) {
 	const input = doc.createElement('input');
 	input.id = id;
-	input.type = type;
+	input.type = type === 'number' ? 'text' : type;
 	input.className = type === 'range' ? 'cfg-range' : 'cfg-input cfg-input--number';
 	input.disabled = options.disabled ?? false;
+	if (type === 'number') {
+		input.inputMode = 'decimal';
+		input.autocomplete = 'off';
+		input.spellcheck = false;
+	}
 	if (options.min !== undefined) {
 		input.min = String(options.min);
 	}
@@ -161,4 +234,121 @@ function field(doc: Document, id: string, type: 'number' | 'range', options: Num
 	}
 	input.step = String(options.step ?? (type === 'range' ? 0.01 : 'any'));
 	return input;
+}
+
+interface NumberField {
+	element: HTMLElement;
+	input: HTMLInputElement;
+	drag: NumberDragHandle;
+}
+
+interface NumberDragHandle {
+	show: () => void;
+	hide: () => void;
+	render: (origin: number, value: number, scale: number, label: string) => void;
+}
+
+function createNumberField(doc: Document, id: string, options: NumberOptions): NumberField {
+	const element = doc.createElement('div');
+	element.className = 'cfg-number';
+	const input = field(doc, id, 'number', options);
+	const guide = doc.createElementNS(svgNs, 'svg');
+	guide.classList.add('cfg-number-guide');
+	guide.setAttribute('aria-hidden', 'true');
+	guide.setAttribute('hidden', '');
+	const body = path(guide, 'cfg-number-guide__body');
+	const head = path(guide, 'cfg-number-guide__head');
+	const bubble = doc.createElementNS(svgNs, 'g');
+	bubble.classList.add('cfg-number-guide__bubble');
+	const rect = doc.createElementNS(svgNs, 'rect');
+	rect.classList.add('cfg-number-guide__bubble-bg');
+	const text = doc.createElementNS(svgNs, 'text');
+	text.classList.add('cfg-number-guide__bubble-text');
+	bubble.append(rect, text);
+	guide.append(body, head, bubble);
+	element.append(input, guide);
+	return {
+		element,
+		input,
+		drag: {
+			show: () => {
+				element.dataset['cfgDragging'] = 'true';
+				guide.removeAttribute('hidden');
+			},
+			hide: () => {
+				delete element.dataset['cfgDragging'];
+				guide.setAttribute('hidden', '');
+			},
+			render: (origin, value, scale, label) => {
+				renderNumberGuide(element, guide, body, head, rect, text, origin, value, scale, label);
+			},
+		},
+	};
+}
+
+function path(svg: SVGSVGElement, className: string) {
+	const node = svg.ownerDocument.createElementNS(svgNs, 'path');
+	node.classList.add(className);
+	return node;
+}
+
+function renderNumberGuide(
+	element: HTMLElement,
+	guide: SVGSVGElement,
+	body: SVGPathElement,
+	head: SVGPathElement,
+	rect: SVGRectElement,
+	text: SVGTextElement,
+	origin: number,
+	value: number,
+	scale: number,
+	label: string,
+) {
+	const bounds = element.getBoundingClientRect();
+	const width = Math.max(1, Math.round(bounds.width));
+	const height = Math.max(1, Math.round(bounds.height));
+	const guideHeight = height + guideOffset;
+	const center = width / 2;
+	const middle = guideOffset + height / 2;
+	const delta = scale === 0 ? 0 : (value - origin) / scale;
+	const x = center + delta;
+	const direction = Math.sign(delta);
+	const arrowOffset = direction === 0 ? 0 : -direction;
+	const bend = clampNumber(-(delta + arrowOffset), -4, 4);
+	const bubbleWidth = Math.max(34, Math.round(label.length * 7 + 10));
+	guide.setAttribute('viewBox', `0 0 ${width} ${guideHeight}`);
+	body.setAttribute('d', `M ${center},${middle} L ${x},${middle}`);
+	head.setAttribute(
+		'd',
+		[`M ${x + arrowOffset + bend},${middle - 4} L ${x + arrowOffset},${middle} L ${x + arrowOffset + bend},${middle + 4}`, `M ${x},${middle - 6} L ${x},${middle + 6}`].join(' '),
+	);
+	rect.setAttribute('x', String(x - bubbleWidth / 2));
+	rect.setAttribute('y', '1');
+	rect.setAttribute('width', String(bubbleWidth));
+	rect.setAttribute('height', '15');
+	rect.setAttribute('rx', '2');
+	text.setAttribute('x', String(x));
+	text.setAttribute('y', '8.5');
+	text.textContent = label;
+}
+
+function keyStep(options: NumberOptions, event: KeyboardEvent) {
+	const direction = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0;
+	if (direction === 0) {
+		return 0;
+	}
+	const base = options.keyScale ?? options.step ?? 1;
+	return direction * base * (event.altKey ? 0.1 : 1) * (event.shiftKey ? 10 : 1);
+}
+
+function pointerScale(options: NumberOptions, value: number) {
+	if (options.pointerScale !== undefined) {
+		return options.pointerScale;
+	}
+	const base = Math.abs(options.step ?? value);
+	return base === 0 ? 0.1 : 10 ** (Math.floor(Math.log10(base)) - 1);
+}
+
+function clampNumber(value: number, min: number, max: number) {
+	return Math.min(max, Math.max(min, value));
 }

@@ -2,9 +2,12 @@ import type { BezierOptions, BezierTuple, NumberOptions, Vector2, VectorOptions 
 import { axis, clamp, el, number, snap, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { Binding, bezier, interval, vector } from '../binding';
+import { fit, observeCanvas } from '../utils/canvas';
 
 const padSize = theme.metrics.padSize;
 const bezierSize = theme.metrics.bezierSize;
+const bezierSolverIterations = 6;
+const bezierBinaryIterations = 8;
 
 export class VectorControl<T extends Record<string, unknown>, K extends keyof T> extends Base<unknown> {
 	readonly #binding: Binding<unknown>;
@@ -119,6 +122,7 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 		this.#x.addEventListener('input', () => this.#setField('x', this.#x.value));
 		this.#y.addEventListener('input', () => this.#setField('y', this.#y.value));
 		this.#canvas.addEventListener('pointerdown', (event) => this.#pointer(event));
+		this.cleanup(observeCanvas(this.#canvas, () => this.render()));
 		this.render();
 	}
 
@@ -234,6 +238,8 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 	readonly #inputs: HTMLInputElement[] = [];
 	readonly #canvas: HTMLCanvasElement;
 	readonly #ctx: CanvasRenderingContext2D | null;
+	#preview = 0.5;
+	#previewStart = -Infinity;
 
 	constructor(owner: Owner, target: T, key: K, options: BezierOptions = {}) {
 		const binding = new Binding(target, key, bezier);
@@ -247,6 +253,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		this.#ctx = this.#canvas.getContext('2d');
 		this.field.append(this.#canvas, this.#fields(), this.#presets(options));
 		this.#canvas.addEventListener('pointerdown', (event) => this.#pointer(event));
+		this.cleanup(observeCanvas(this.#canvas, () => this.render()));
 		this.render();
 	}
 
@@ -256,8 +263,20 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 
 	set(value: BezierTuple) {
 		this.#binding.set(value);
+		this.#restartPreview();
 		this.render();
 		this.emit('change');
+	}
+
+	renderFrame(time: number) {
+		if (this.#previewStart === -Infinity || !this.owner.visible()) {
+			return;
+		}
+		this.#preview = this.#previewProgress(time);
+		if (this.#preview >= 1) {
+			this.#previewStart = -Infinity;
+		}
+		this.render();
 	}
 
 	protected render() {
@@ -268,7 +287,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 				field.value = text(value[index] ?? 0);
 			}
 		}
-		drawBezier(this.#ctx, value);
+		drawBezier(this.#ctx, value, this.#previewProgress());
 	}
 
 	#fields() {
@@ -300,6 +319,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 
 	#update() {
 		this.#binding.set(this.#inputs.map((field) => Number(field.value)) as BezierTuple);
+		this.#restartPreview();
 		this.render();
 		this.emit('input');
 	}
@@ -317,6 +337,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		const h1 = Math.hypot(event.clientX - first.x, event.clientY - first.y);
 		const h2 = Math.hypot(event.clientX - second.x, event.clientY - second.y);
 		const handle = h1 <= theme.metrics.bezierHandleHitRadius || h1 <= h2 ? 0 : 2;
+		this.#restartPreview();
 		const update = (pointer: PointerEvent) => {
 			const next: BezierTuple = [...this.get()];
 			next[handle] = snap(clamp((pointer.clientX - bounds.left) / bounds.width, 0, 1), 0.01);
@@ -337,6 +358,18 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 		this.#canvas.addEventListener('pointermove', move);
 		this.#canvas.addEventListener('pointerup', up, { once: true });
 		update(event);
+	}
+
+	#restartPreview() {
+		this.#preview = 0;
+		this.#previewStart = this.owner.clock();
+	}
+
+	#previewProgress(time = this.owner.clock()) {
+		if (this.#previewStart === -Infinity) {
+			return this.#preview;
+		}
+		return clamp((time - this.#previewStart) / theme.metrics.bezierPreviewDuration, 0, 1);
 	}
 }
 
@@ -369,33 +402,36 @@ function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: 
 	if (!ctx) {
 		return;
 	}
+	const { width, height, scale } = fit(ctx.canvas, padSize, padSize);
 	const min = options.min ?? -1;
 	const max = options.max ?? 1;
-	const x = ((value.x - min) / (max - min)) * padSize;
+	const x = ((value.x - min) / (max - min)) * width;
 	const yRatio = (value.y - min) / (max - min);
-	const y = (options.invertY ? yRatio : 1 - yRatio) * padSize;
-	ctx.clearRect(0, 0, padSize, padSize);
+	const y = (options.invertY ? yRatio : 1 - yRatio) * height;
+	ctx.clearRect(0, 0, width, height);
 	ctx.fillStyle = theme.canvas.panel;
-	ctx.fillRect(0, 0, padSize, padSize);
+	ctx.fillRect(0, 0, width, height);
+	ctx.lineWidth = Math.max(1, scale);
 	ctx.strokeStyle = theme.canvas.grid;
 	ctx.beginPath();
-	ctx.moveTo(padSize / 2, 0);
-	ctx.lineTo(padSize / 2, padSize);
-	ctx.moveTo(0, padSize / 2);
-	ctx.lineTo(padSize, padSize / 2);
+	ctx.moveTo(width / 2, 0);
+	ctx.lineTo(width / 2, height);
+	ctx.moveTo(0, height / 2);
+	ctx.lineTo(width, height / 2);
 	ctx.stroke();
 	ctx.fillStyle = theme.palette.blue;
 	ctx.beginPath();
-	ctx.arc(clamp(x, 0, padSize), clamp(y, 0, padSize), theme.metrics.bezierHandleRadius, 0, Math.PI * 2);
+	ctx.arc(clamp(x, 0, width), clamp(y, 0, height), theme.metrics.bezierHandleRadius * scale, 0, Math.PI * 2);
 	ctx.fill();
 }
 
-function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple) {
+function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple, preview: number) {
 	if (!ctx) {
 		return;
 	}
+	const { width, height, scale } = fit(ctx.canvas, bezierSize, bezierSize);
 	const domain = bezierDomain(value);
-	const point = (x: number, y: number): [number, number] => [clamp(x, 0, 1) * bezierSize, yPixel(y, bezierSize, domain)];
+	const point = (x: number, y: number): [number, number] => [clamp(x, 0, 1) * width, yPixel(y, height, domain)];
 	const x1 = value[0] ?? 0;
 	const y1 = value[1] ?? 0;
 	const x2 = value[2] ?? 0;
@@ -404,36 +440,31 @@ function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple) {
 	const [bx, by] = point(x1, y1);
 	const [cx, cy] = point(x2, y2);
 	const [dx, dy] = point(1, 1);
-	ctx.clearRect(0, 0, bezierSize, bezierSize);
+	ctx.clearRect(0, 0, width, height);
 	ctx.fillStyle = theme.canvas.panel;
-	ctx.fillRect(0, 0, bezierSize, bezierSize);
-	ctx.lineWidth = 1;
-	ctx.strokeStyle = theme.canvas.grid;
-	ctx.beginPath();
-	ctx.moveTo(0, yPixel(0, bezierSize, domain));
-	ctx.lineTo(bezierSize, yPixel(1, bezierSize, domain));
-	ctx.moveTo(bezierSize / 2, 0);
-	ctx.lineTo(bezierSize / 2, bezierSize);
-	ctx.moveTo(0, yPixel((domain.min + domain.max) / 2, bezierSize, domain));
-	ctx.lineTo(bezierSize, yPixel((domain.min + domain.max) / 2, bezierSize, domain));
-	ctx.stroke();
+	ctx.fillRect(0, 0, width, height);
+	drawBezierGrid(ctx, width, height, scale, domain);
+	drawTimingTicks(ctx, width, scale);
+	drawControlGuides(ctx, bx, by, cx, cy, width, scale);
 	ctx.strokeStyle = theme.canvas.guide;
+	ctx.lineWidth = Math.max(1, scale);
 	ctx.beginPath();
 	ctx.moveTo(ax, ay);
 	ctx.lineTo(bx, by);
 	ctx.moveTo(dx, dy);
 	ctx.lineTo(cx, cy);
 	ctx.stroke();
-	ctx.lineWidth = 2;
+	ctx.lineWidth = 2 * scale;
 	ctx.strokeStyle = theme.palette.blue;
 	ctx.beginPath();
 	ctx.moveTo(ax, ay);
 	ctx.bezierCurveTo(bx, by, cx, cy, dx, dy);
 	ctx.stroke();
-	drawHandle(ctx, bx, by, theme.palette.gold);
-	drawHandle(ctx, cx, cy, theme.palette.blue);
-	drawHandle(ctx, ax, ay, theme.canvas.muted);
-	drawHandle(ctx, dx, dy, theme.canvas.muted);
+	drawPreviewMarker(ctx, value, preview, width, height, scale, domain);
+	drawHandle(ctx, bx, by, theme.palette.gold, scale);
+	drawHandle(ctx, cx, cy, theme.palette.blue, scale);
+	drawHandle(ctx, ax, ay, theme.canvas.muted, scale);
+	drawHandle(ctx, dx, dy, theme.canvas.muted, scale);
 }
 
 function bezierDomain(value: BezierTuple) {
@@ -454,12 +485,130 @@ function yValue(pixel: number, height: number, domain: { min: number; max: numbe
 	return domain.min + (1 - pixel / Math.max(1, height)) * (domain.max - domain.min);
 }
 
-function drawHandle(ctx: CanvasRenderingContext2D, x: number, y: number, fill: string) {
-	ctx.lineWidth = 2;
+function drawBezierGrid(ctx: CanvasRenderingContext2D, width: number, height: number, scale: number, domain: { min: number; max: number }) {
+	ctx.save();
+	ctx.lineWidth = Math.max(1, scale);
+	ctx.strokeStyle = theme.canvas.grid;
+	ctx.globalAlpha = 0.7;
+	ctx.beginPath();
+	ctx.moveTo(0, yPixel(0, height, domain));
+	ctx.lineTo(width, yPixel(1, height, domain));
+	ctx.moveTo(width / 2, 0);
+	ctx.lineTo(width / 2, height);
+	ctx.moveTo(0, yPixel((domain.min + domain.max) / 2, height, domain));
+	ctx.lineTo(width, yPixel((domain.min + domain.max) / 2, height, domain));
+	for (const ratio of [0.25, 0.75]) {
+		const x = ratio * width;
+		ctx.moveTo(x, 0);
+		ctx.lineTo(x, height);
+	}
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawTimingTicks(ctx: CanvasRenderingContext2D, width: number, scale: number) {
+	const count = Math.max(2, theme.metrics.bezierTickCount);
+	const tall = theme.metrics.bezierTickHeight * scale;
+	const short = tall * 0.62;
+	ctx.save();
+	ctx.lineWidth = Math.max(1, scale);
+	ctx.strokeStyle = theme.canvas.guide;
+	ctx.globalAlpha = 0.72;
+	ctx.beginPath();
+	for (let index = 0; index <= count; index += 1) {
+		const x = (index / count) * width;
+		const height = index % 3 === 0 ? tall : short;
+		ctx.moveTo(x, 0);
+		ctx.lineTo(x, height);
+	}
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawControlGuides(ctx: CanvasRenderingContext2D, bx: number, by: number, cx: number, cy: number, width: number, scale: number) {
+	ctx.save();
+	ctx.lineWidth = Math.max(1, scale);
+	ctx.strokeStyle = theme.canvas.guide;
+	ctx.globalAlpha = 0.46;
+	ctx.setLineDash([2 * scale, 3 * scale]);
+	ctx.beginPath();
+	ctx.moveTo(bx, by);
+	ctx.lineTo(width, by);
+	ctx.moveTo(0, cy);
+	ctx.lineTo(cx, cy);
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawPreviewMarker(ctx: CanvasRenderingContext2D, value: BezierTuple, preview: number, width: number, height: number, scale: number, domain: { min: number; max: number }) {
+	const progress = clamp(preview, 0, 1);
+	const x1 = value[0] ?? 0;
+	const y1 = value[1] ?? 0;
+	const x2 = value[2] ?? 0;
+	const y2 = value[3] ?? 0;
+	const t = solveBezierX(x1, x2, progress);
+	const x = progress * width;
+	const y = yPixel(cubic(0, y1, y2, 1, t), height, domain);
+	ctx.save();
+	ctx.lineWidth = Math.max(1, scale);
+	ctx.strokeStyle = theme.canvas.guide;
+	ctx.globalAlpha = 0.38;
+	ctx.setLineDash([2 * scale, 3 * scale]);
+	ctx.beginPath();
+	ctx.moveTo(x, 0);
+	ctx.lineTo(x, height);
+	ctx.stroke();
+	ctx.globalAlpha = 1;
+	ctx.fillStyle = theme.palette.gold;
+	ctx.strokeStyle = theme.canvas.panel;
+	ctx.lineWidth = 2 * scale;
+	ctx.beginPath();
+	ctx.arc(x, y, theme.metrics.bezierPreviewMarkerRadius * scale, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.stroke();
+	ctx.restore();
+}
+
+function solveBezierX(x1: number, x2: number, target: number) {
+	let t = target;
+	for (let index = 0; index < bezierSolverIterations; index += 1) {
+		const x = cubic(0, x1, x2, 1, t) - target;
+		const slope = cubicDerivative(0, x1, x2, 1, t);
+		if (Math.abs(slope) < 0.000_001) {
+			break;
+		}
+		t = clamp(t - x / slope, 0, 1);
+	}
+	let low = 0;
+	let high = 1;
+	for (let index = 0; index < bezierBinaryIterations; index += 1) {
+		const x = cubic(0, x1, x2, 1, t);
+		if (x < target) {
+			low = t;
+		} else {
+			high = t;
+		}
+		t = (low + high) / 2;
+	}
+	return t;
+}
+
+function cubic(a: number, b: number, c: number, d: number, t: number) {
+	const one = 1 - t;
+	return one * one * one * a + 3 * one * one * t * b + 3 * one * t * t * c + t * t * t * d;
+}
+
+function cubicDerivative(a: number, b: number, c: number, d: number, t: number) {
+	const one = 1 - t;
+	return 3 * one * one * (b - a) + 6 * one * t * (c - b) + 3 * t * t * (d - c);
+}
+
+function drawHandle(ctx: CanvasRenderingContext2D, x: number, y: number, fill: string, scale: number) {
+	ctx.lineWidth = 2 * scale;
 	ctx.fillStyle = fill;
 	ctx.strokeStyle = theme.canvas.panel;
 	ctx.beginPath();
-	ctx.arc(x, y, theme.metrics.bezierHandleRadius, 0, Math.PI * 2);
+	ctx.arc(x, y, theme.metrics.bezierHandleRadius * scale, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.stroke();
 }

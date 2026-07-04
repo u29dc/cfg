@@ -52,6 +52,7 @@ export class Pane implements PaneApi {
 	readonly #children = new Set<Managed | Pane>();
 	readonly #parent: Pane | undefined;
 	#animation: Animation | undefined;
+	#expandedHeight: number | undefined;
 	#collapsed = false;
 	#disposed = false;
 
@@ -315,6 +316,7 @@ export class Pane implements PaneApi {
 		this.#children.add(control);
 		this.#body.append(control.element);
 		this.#manager.add(control);
+		this.#invalidateHeight();
 		return control;
 	}
 
@@ -334,8 +336,14 @@ export class Pane implements PaneApi {
 	#animateCollapse() {
 		const start = this.#body.getBoundingClientRect().height;
 		this.#animation?.cancel();
+		if (start > 0) {
+			this.#expandedHeight = start;
+		}
 		this.#syncHeader();
 		this.#body.dataset['cfgAnimating'] = 'true';
+		if (this.#parent) {
+			this.#parent.#invalidateHeight();
+		}
 		const animation = this.#body.animate(
 			[
 				{ height: `${start}px`, opacity: 1 },
@@ -366,8 +374,11 @@ export class Pane implements PaneApi {
 		this.#animation?.cancel();
 		this.#body.hidden = false;
 		this.#syncHeader();
-		const end = this.#body.offsetHeight;
+		const end = this.#expandedHeight ?? this.#measureExpandedHeight();
 		this.#body.dataset['cfgAnimating'] = 'true';
+		if (this.#parent) {
+			this.#parent.#invalidateHeight();
+		}
 		const animation = this.#body.animate(
 			[
 				{ height: `${start}px`, opacity: start > 0 ? 1 : 0 },
@@ -390,6 +401,19 @@ export class Pane implements PaneApi {
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
 		};
+	}
+
+	#measureExpandedHeight() {
+		this.#body.hidden = false;
+		this.#expandedHeight = this.#body.scrollHeight;
+		return this.#expandedHeight;
+	}
+
+	#invalidateHeight() {
+		this.#expandedHeight = undefined;
+		if (this.#parent) {
+			this.#parent.#invalidateHeight();
+		}
 	}
 }
 

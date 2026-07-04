@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
 async function run(command: string, args: string[]) {
 	const child = spawn(command, args, { stdio: 'inherit' });
@@ -27,7 +28,7 @@ if (!build.success) {
 	throw new Error('Bun library build failed');
 }
 
-await copyFile('packages/vanilla/src/styles/cfg.css', 'dist/styles.css');
+await writeFile('dist/styles.css', await readCss('packages/vanilla/src/styles/cfg.css'));
 await writeFile('dist/styles.css.d.ts', 'declare const stylesheet: string;\nexport default stylesheet;\n');
 await run('bunx', ['tsc', '-p', 'tsconfig.build.json']);
 const types = await readFile('dist/types/core/src/types.d.ts', 'utf8');
@@ -36,3 +37,19 @@ await writeFile(
 	`${types}\nexport declare const theme: Theme;\nexport declare const defaultBezier: BezierTuple;\nexport declare const bezierPresets: readonly BezierPreset[];\nexport declare function createCfg(options?: CfgOptions): Cfg;\n`,
 );
 await rm('dist/types', { force: true, recursive: true });
+
+async function readCss(file: string, seen = new Set<string>()): Promise<string> {
+	if (seen.has(file)) {
+		return '';
+	}
+	seen.add(file);
+	const source = await readFile(file, 'utf8');
+	const lines = await Promise.all(
+		source.split('\n').map(async (line) => {
+			const match = line.match(/^@import\s+["'](.+)["'];$/);
+			const imported = match?.[1];
+			return imported ? readCss(join(dirname(file), imported), seen) : line;
+		}),
+	);
+	return `${lines.join('\n').trimEnd()}\n`;
+}

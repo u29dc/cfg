@@ -60,6 +60,10 @@ export interface Theme {
 		bezierSize: number;
 		bezierHandleRadius: number;
 		bezierHandleHitRadius: number;
+		bezierTickCount: number;
+		bezierTickHeight: number;
+		bezierPreviewDuration: number;
+		bezierPreviewMarkerRadius: number;
 		colorSwatchSize: number;
 		paletteSwatchSize: number;
 		colorPickerWidth: number;
@@ -115,6 +119,8 @@ export interface NumberOptions extends ControlOptions {
 	max?: number;
 	step?: number;
 	format?: (value: number) => string;
+	keyScale?: number;
+	pointerScale?: number;
 }
 
 export interface TextOptions extends ControlOptions {

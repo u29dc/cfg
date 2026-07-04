@@ -1,7 +1,7 @@
 import type { GraphOptions, TelemetryGraph } from '@u29dc/cfg-core';
 import { clamp, output, Series, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
-import { fit } from '../utils/canvas';
+import { fit, observeCanvas } from '../utils/canvas';
 import { color } from '../utils/color';
 
 type Mode = 'graph' | 'waveform' | 'fps' | 'frame';
@@ -43,6 +43,12 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-graph-readout');
 		this.field.append(this.#canvas, this.#readout);
+		this.cleanup(
+			observeCanvas(this.#canvas, () => {
+				this.#dirty = true;
+				this.render();
+			}),
+		);
 		this.render();
 	}
 
@@ -105,19 +111,12 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		if (!ctx) {
 			return;
 		}
-		const { width, height } = fit(this.#canvas, theme.metrics.graphWidth, theme.metrics.graphHeight);
+		const { width, height, scale } = fit(this.#canvas, theme.metrics.graphWidth, theme.metrics.graphHeight);
 		const range = this.#range();
 		ctx.clearRect(0, 0, width, height);
 		ctx.fillStyle = theme.telemetry.background;
 		ctx.fillRect(0, 0, width, height);
-		if (this.#options.target !== undefined) {
-			const y = yOf(this.#options.target, range.min, range.max, height);
-			ctx.strokeStyle = theme.telemetry.target;
-			ctx.beginPath();
-			ctx.moveTo(0, y);
-			ctx.lineTo(width, y);
-			ctx.stroke();
-		}
+		this.#drawTarget(ctx, range, width, height, scale);
 		for (const series of this.#series) {
 			drawSeries(ctx, series, range.min, range.max, width, height, this.#smoothing);
 		}
@@ -150,6 +149,24 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 			}
 		}
 		return Number.isFinite(min) && Number.isFinite(max) && min !== max ? { min, max } : { min: 0, max: 1 };
+	}
+
+	#drawTarget(ctx: CanvasRenderingContext2D, range: { min: number; max: number }, width: number, height: number, scale: number) {
+		const target = this.#options.target;
+		if (target === undefined) {
+			return;
+		}
+		const y = yOf(target, range.min, range.max, height);
+		ctx.save();
+		ctx.lineWidth = Math.max(1, scale);
+		ctx.strokeStyle = theme.telemetry.target;
+		ctx.setLineDash([3 * scale, 3 * scale]);
+		ctx.beginPath();
+		ctx.moveTo(0, y);
+		ctx.lineTo(width, y);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.restore();
 	}
 }
 
@@ -202,7 +219,7 @@ function latest(series: Series, smoothing: number) {
 
 function readout(value: number, mode: Mode) {
 	if (mode === 'fps') {
-		return String(Math.round(value));
+		return `${Math.round(value)} FPS`;
 	}
 	if (mode === 'frame') {
 		return value.toFixed(1);

@@ -23,4 +23,11 @@ Theme mode is managed at the cfg root with `data-cfg-theme` and exposed through
 theme is `system`, while explicit `light` and `dark` modes are intended for host
 theme toggles such as `_www_template`'s site-wide theme switch.
 
+The default skin keeps Tweakpane's compact 11px root scale as the label baseline,
+then uses explicit CSS typography tokens for cfg's Geist Mono adjustment:
+`--cfg-font-size-root`, `--cfg-font-size-title`, `--cfg-font-size-control`,
+`--cfg-font-size-axis`, and `--cfg-font-size-readout`. Controls and buttons use
+the 12px control tier so numeric values stay readable without changing pane
+density or relying on ad hoc per-control font sizes.
+
 This document will be expanded as the implementation lands.

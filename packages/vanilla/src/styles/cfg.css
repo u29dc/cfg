@@ -22,8 +22,15 @@
  * SOFTWARE.
  */
 
+@import "./number.css";
+
 .cfg-root {
 	--cfg-font: "Geist Mono", "Roboto Mono", "Source Code Pro", Menlo, Courier, monospace;
+	--cfg-font-size-root: 11px;
+	--cfg-font-size-title: 12px;
+	--cfg-font-size-control: 12px;
+	--cfg-font-size-axis: 9px;
+	--cfg-font-size-readout: 11px;
 	--cfg-pane-width: 288px;
 	--cfg-unit: 20px;
 	--cfg-unit-gap: 4px;
@@ -50,7 +57,7 @@
 	align-items: flex-start;
 	gap: 8px;
 	font-family: var(--cfg-font);
-	font-size: 11px;
+	font-size: var(--cfg-font-size-root);
 	font-weight: 700;
 	line-height: 1;
 	text-align: left;
@@ -209,7 +216,11 @@
 	background: var(--cfg-base-bg);
 	box-shadow: 0 2px 4px var(--cfg-base-shadow);
 	pointer-events: auto;
-	scrollbar-width: thin;
+	scrollbar-width: none;
+}
+
+.cfg-pane::-webkit-scrollbar {
+	display: none;
 }
 
 .cfg-folder {
@@ -232,6 +243,7 @@
 	background: var(--cfg-container-bg);
 	color: var(--cfg-container-fg);
 	font: inherit;
+	font-size: var(--cfg-font-size-title);
 	font-weight: 700;
 	line-height: calc(var(--cfg-unit) + 4px);
 	text-overflow: ellipsis;
@@ -294,12 +306,21 @@
 
 .cfg-pane__body,
 .cfg-folder__body {
-	display: grid;
-	gap: var(--cfg-unit-gap);
+	display: block;
 	overflow: visible;
 	padding: var(--cfg-unit-gap);
 	background: var(--cfg-base-bg);
 	opacity: 1;
+}
+
+.cfg-pane__body > *,
+.cfg-folder__body > * {
+	margin-block-start: var(--cfg-unit-gap);
+}
+
+.cfg-pane__body > :first-child,
+.cfg-folder__body > :first-child {
+	margin-block-start: 0;
 }
 
 .cfg-pane__body[hidden],
@@ -318,7 +339,9 @@
 
 .cfg-pane__body[data-cfg-animating="true"],
 .cfg-folder__body[data-cfg-animating="true"] {
+	contain: layout paint;
 	overflow: hidden;
+	will-change: height, opacity;
 }
 
 .cfg-control {
@@ -375,6 +398,7 @@
 	background: var(--cfg-input-bg);
 	color: var(--cfg-input-fg);
 	font: inherit;
+	font-size: var(--cfg-font-size-control);
 	line-height: var(--cfg-unit);
 	outline: none;
 }
@@ -599,7 +623,7 @@
 	gap: 2px;
 	min-inline-size: 0;
 	color: var(--cfg-label-fg);
-	font-size: 9px;
+	font-size: var(--cfg-font-size-axis);
 	line-height: 1;
 	text-transform: uppercase;
 }
@@ -703,6 +727,7 @@
 	border-radius: var(--cfg-blade-radius);
 	background: var(--cfg-input-bg);
 	color: var(--cfg-monitor-fg);
+	font-size: var(--cfg-font-size-control);
 	line-height: var(--cfg-unit);
 	padding-inline: var(--cfg-h-pad);
 	text-overflow: ellipsis;
@@ -723,7 +748,6 @@
 
 .cfg-pad,
 .cfg-bezier {
-	inline-size: var(--cfg-pad-size);
 	block-size: var(--cfg-pad-size);
 	cursor: crosshair;
 	touch-action: none;
@@ -744,6 +768,7 @@
 	overflow: hidden;
 	color: var(--cfg-monitor-fg);
 	font: inherit;
+	font-size: var(--cfg-font-size-readout);
 	font-weight: 700;
 	line-height: 1.35;
 	text-overflow: ellipsis;
