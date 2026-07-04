@@ -36,6 +36,7 @@
 		"build": "bun run util:types && bun run build:lib && bun run build:demo",
 		"build:lib": "bun scripts/build.ts",
 		"build:demo": "vite build",
+		"bench": "bun benchmarks/run.ts",
 		"test": "bun test",
 		"test:browser": "bun run build:demo && playwright test",
 		"util:format": "biome format --write .",
