@@ -1,16 +1,132 @@
 # Performance
 
-`cfg` is designed around a strict split between event-driven controls and per-frame telemetry.
+`cfg` is designed for pages that already care about frame budget. It must not
+become the thing that makes the frame budget worse.
 
-Performance rules:
+The performance model is a strict split:
 
-- no full pane refresh in `renderFrame()`;
-- no per-sample DOM or SVG graph rendering;
-- no forced layout reads in telemetry hot paths;
-- fixed-size typed buffers for numeric samples;
-- canvas rendering only for dirty visible graphs;
-- throttled DOM text readouts by default;
-- hidden or collapsed panes skip visible canvas drawing.
+- controls are event-driven;
+- telemetry sampling is fixed-size and allocation-conscious;
+- canvas surfaces draw only when dirty and visible;
+- text readouts are throttled;
+- hidden and collapsed panes skip visible work.
+
+## Frame Budget Goals
+
+The target is not "zero cost"; it is predictable and small overhead:
+
+- no hidden RAF loop in external scheduler mode;
+- no full pane refresh from `renderFrame()`;
+- no per-sample DOM nodes;
+- no SVG graph point churn;
+- no telemetry network calls;
+- no layout reads in graph draw loops;
+- no unbounded log or history growth.
+
+Local benchmark data is expected to stay well below 1ms average overhead for the
+representative demo scenarios. Re-run on the target host because browser,
+display refresh rate, and hardware matter.
+
+## External Scheduler
+
+External mode is the default:
+
+```ts
+const cfg = createCfg({ scheduler: "external" });
+```
+
+The host loop controls timing:
+
+```ts
+function loop(time: number) {
+  cfg.beginFrame(time);
+  update();
+  render();
+  cfg.endFrame(time);
+  cfg.renderFrame(time);
+  requestAnimationFrame(loop);
+}
+```
+
+This avoids a duplicate RAF loop. It also means FPS, frame-time, and profiler
+surfaces describe the real host loop rather than a separate library clock.
+
+## Hot Path Rules
+
+The per-frame path is intentionally small:
+
+- `Engine.beginFrame(time)` records the frame sample and FPS sample;
+- registered profilers receive frame begin;
+- `Engine.endFrame()` records duration and frame graph samples;
+- `Engine.renderFrame(time)` asks renderable controls to draw if dirty.
+
+Graph samples are stored in fixed-size typed ring buffers. Pushing a numeric
+sample does not create DOM nodes or grow arrays without bound.
+
+## Canvas Graphs
+
+Graphs, XY pad, Bezier editor, color picker surfaces, and profiler bars are
+canvas-backed.
+
+Canvas fitting is centralized:
+
+- backing stores scale by clamped device pixel ratio;
+- layout is read through `getBoundingClientRect()`;
+- `ResizeObserver` resyncs when pane widths change;
+- a short first-layout sync handles CSS and visibility settlement;
+- hidden tab pages refresh when shown.
+
+The graph draw path receives already-sized canvas dimensions and draws lines,
+target guides, bars, and markers directly.
+
+## Text Readouts
+
+Text monitors and logs are useful, but DOM text is not the right surface for
+high-frequency numeric streams. `monitor()` and `logMonitor()` throttle visible
+updates by default.
+
+Use canvas graphs for per-frame data. Use logs for human-readable events:
+
+```ts
+const log = pane.logMonitor({ rows: 5, bufferSize: 50 });
+log.push("loaded shader cache");
+```
+
+The log keeps newest messages when the buffer is full.
+
+## Visibility Gating
+
+Every visible render checks pane visibility:
+
+- collapsed panes are hidden from visible drawing;
+- hidden tab pages are hidden from visible drawing;
+- disposed panes unregister controls;
+- off-pane telemetry state can keep sampling, but visible drawing is skipped.
+
+This lets a user collapse a diagnostics pane without paying the full canvas draw
+cost.
+
+## Settings And Import
+
+Settings export/import runs on user action, not frame paths. Imports validate
+values before committing them. If one imported value fails validation, earlier
+values from the same import are rolled back.
+
+Telemetry buffers are not serialized by default.
+
+## Browser APIs
+
+Current v1 uses:
+
+- RAF timestamp supplied by the host or internal scheduler;
+- `performance.now()` through the engine clock;
+- `ResizeObserver` for canvas resize synchronization;
+- static canvas and DOM APIs.
+
+Long Animation Frames, Long Tasks, Event Timing, Layout Shift, and Resource
+Timing are intentionally not first-party v1 panels. They can be useful, but
+their signal and browser support need product-specific interpretation. Adding
+them later should happen behind focused surfaces, not a broad dashboard.
 
 ## Benchmark Runner
 
@@ -21,8 +137,8 @@ bun run build
 bun run bench
 ```
 
-The benchmark serves the built `dist` bundle directly in headless Chromium and records JSON under
-`artifacts/performance/`. It measures RAF callback cost for:
+The benchmark serves the built `dist` bundle directly in headless Chromium and
+records JSON under `artifacts/performance/`. It measures RAF callback cost for:
 
 - host baseline;
 - one pane without telemetry;
@@ -34,16 +150,52 @@ The benchmark serves the built `dist` bundle directly in headless Chromium and r
 
 Latest local run:
 
-- artifact: `artifacts/performance/benchmark-2026-07-04T22-30-36.102Z.json`;
-- browser: HeadlessChrome 149.0.7827.55;
-- frames: 180 measured after 30 warmup frames;
-- host baseline average: `0.001ms`;
-- one pane, no telemetry average: `0.007ms`;
-- three panes, no telemetry average: `0.005ms`;
-- FPS graph active average/p95/max: `0.076ms / 0.2ms / 0.2ms`;
-- profiler active average/p95/max: `0.05ms / 0.1ms / 0.2ms`;
-- many controls average: `0.007ms`;
-- collapsed pane average: `0.009ms`.
+| Scenario | Average | p95 | Max |
+| --- | ---: | ---: | ---: |
+| host baseline | `0.001ms` | not recorded | not recorded |
+| one pane, no telemetry | `0.007ms` | not recorded | not recorded |
+| three panes, no telemetry | `0.005ms` | not recorded | not recorded |
+| FPS graph active | `0.076ms` | `0.2ms` | `0.2ms` |
+| profiler active | `0.05ms` | `0.1ms` | `0.2ms` |
+| many controls | `0.007ms` | not recorded | not recorded |
+| collapsed pane | `0.009ms` | not recorded | not recorded |
 
-These numbers are local evidence, not a universal guarantee. Re-run on the target browser/machine
-before treating them as a performance budget.
+Artifact:
+
+```text
+artifacts/performance/benchmark-2026-07-04T22-30-36.102Z.json
+```
+
+Environment:
+
+- browser: HeadlessChrome 149.0.7827.55;
+- measured frames: 180;
+- warmup frames: 30.
+
+These numbers are local evidence, not a universal guarantee. Re-run the
+benchmark and browser QA on the target machine before treating them as a
+performance budget.
+
+## Manual QA Evidence
+
+Recent browser QA captured:
+
+- canvas first-paint DPR-2 backing-store verification;
+- hidden pane scrollbar check;
+- full-width pad/easing canvases;
+- graph readouts and profiler/log layout;
+- image clear behavior;
+- mobile compact typography.
+
+Artifacts live under `artifacts/browser-qa/` and are ignored by Git by default.
+
+## Residual Risk
+
+Known residual risks before release:
+
+- GitHub tag install cannot be fully verified until `origin` points at
+  `u29dc/cfg` and the tag exists remotely.
+- `_www_template` integration must still verify real host-loop behavior in the
+  downstream runtime.
+- Clawpatch and final subagent review may identify additional performance or
+  architecture fixes.
