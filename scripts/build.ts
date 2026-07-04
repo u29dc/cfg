@@ -30,5 +30,8 @@ if (!build.success) {
 await copyFile('packages/vanilla/src/styles/cfg.css', 'dist/styles.css');
 await run('bunx', ['tsc', '-p', 'tsconfig.build.json']);
 const types = await readFile('dist/types/core/src/types.d.ts', 'utf8');
-await writeFile('dist/index.d.ts', `${types}\nexport declare function createCfg(options?: CfgOptions): Cfg;\n`);
+await writeFile(
+	'dist/index.d.ts',
+	`${types}\nexport declare const theme: Theme;\nexport declare const defaultBezier: BezierTuple;\nexport declare const bezierPresets: readonly BezierPreset[];\nexport declare function createCfg(options?: CfgOptions): Cfg;\n`,
+);
 await rm('dist/types', { force: true, recursive: true });

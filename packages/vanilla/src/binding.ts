@@ -1,5 +1,5 @@
 import type { AxisOptions, BezierTuple, BezierValue, Choice, ChoiceValue, IntervalValue, NumberOptions, VectorOptions } from '@u29dc/cfg-core';
-import { clamp, number } from '@u29dc/cfg-core';
+import { clamp, defaultBezier, number } from '@u29dc/cfg-core';
 
 export class Binding<T> {
 	readonly #target: Record<PropertyKey, unknown>;
@@ -77,7 +77,7 @@ export function bezier(value: unknown): BezierTuple {
 		? value
 		: typeof value === 'object' && value !== null
 			? [(value as BezierValue).x1, (value as BezierValue).y1, (value as BezierValue).x2, (value as BezierValue).y2]
-			: [0.25, 0.1, 0.25, 1];
+			: defaultBezier;
 	return [clamp(Number(source[0]), 0, 1), clamp(Number(source[1]), -2, 2), clamp(Number(source[2]), 0, 1), clamp(Number(source[3]), -2, 2)];
 }
 

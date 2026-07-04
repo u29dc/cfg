@@ -1,3 +1,4 @@
+import { theme } from './theme';
 import type { EntrySnapshot, ProfilerSnapshot } from './types';
 
 export class ProfileEntry {
@@ -46,7 +47,7 @@ export class Profile {
 	#frame = 0;
 	#total = 0;
 
-	constructor(history = 120) {
+	constructor(history: number = theme.metrics.profileHistory) {
 		this.#history = history;
 	}
 

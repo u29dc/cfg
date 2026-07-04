@@ -1,5 +1,5 @@
 import type { Profiler, ProfilerOptions, ProfilerSnapshot } from '@u29dc/cfg-core';
-import { output, Profile, ratio, text } from '@u29dc/cfg-core';
+import { output, Profile, ratio, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 
 export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler {
@@ -10,13 +10,13 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 	#dirty = true;
 
 	constructor(owner: Owner, options: ProfilerOptions) {
-		const profile = new Profile(options.history ?? 120);
+		const profile = new Profile(options.history ?? theme.metrics.profileHistory);
 		super(owner, 'profiler', { ...options, serialize: false }, profile.snapshot());
 		this.#profile = profile;
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-profiler';
-		this.#canvas.width = 280 * ratio();
-		this.#canvas.height = 70 * ratio();
+		this.#canvas.width = theme.metrics.profilerWidth * ratio();
+		this.#canvas.height = theme.metrics.profilerHeight * ratio();
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-profiler-readout');
 		this.field.append(this.#canvas, this.#readout);
@@ -89,10 +89,10 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 		const width = this.#canvas.width;
 		const height = this.#canvas.height;
 		const entries = snapshot.entries.slice(0, 8);
-		const max = Math.max(16.67, ...entries.map((entry) => entry.max));
+		const max = Math.max(theme.metrics.frameBudget, ...entries.map((entry) => entry.max));
 		const row = height / Math.max(1, entries.length);
 		ctx.clearRect(0, 0, width, height);
-		ctx.fillStyle = '#0f141a';
+		ctx.fillStyle = theme.telemetry.background;
 		ctx.fillRect(0, 0, width, height);
 		for (let index = 0; index < entries.length; index += 1) {
 			const entry = entries[index];
@@ -100,9 +100,9 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 				continue;
 			}
 			const y = index * row;
-			ctx.fillStyle = entry.latest > 16.67 ? '#ff6b8b' : '#78a6ff';
+			ctx.fillStyle = entry.latest > theme.metrics.frameBudget ? theme.telemetry.warning : theme.telemetry.ok;
 			ctx.fillRect(0, y + 2, (entry.latest / max) * width, Math.max(2, row - 4));
-			ctx.fillStyle = '#f1f4f8';
+			ctx.fillStyle = theme.telemetry.text;
 			ctx.font = `${10 * ratio()}px ui-monospace, monospace`;
 			ctx.fillText(entry.label, 4 * ratio(), y + row * 0.65);
 		}

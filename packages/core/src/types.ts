@@ -5,6 +5,49 @@ export type Width = 'compact' | 'default' | 'wide';
 export type Clock = () => number;
 export type Raf = (callback: (time: number) => void) => number;
 export type CancelRaf = (id: number) => void;
+export type ColorString = `#${string}` | `rgb(${string})` | `rgba(${string})`;
+
+export interface Theme {
+	palette: {
+		blue: ColorString;
+		gold: ColorString;
+		rose: ColorString;
+		green: ColorString;
+		black: ColorString;
+		ink: ColorString;
+		text: ColorString;
+		white: ColorString;
+		series: readonly ColorString[];
+	};
+	canvas: {
+		surface: ColorString;
+		panel: ColorString;
+		grid: ColorString;
+		guide: ColorString;
+		muted: ColorString;
+	};
+	telemetry: {
+		background: ColorString;
+		target: ColorString;
+		text: ColorString;
+		warning: ColorString;
+		ok: ColorString;
+	};
+	metrics: {
+		frameBudget: number;
+		fpsTarget: number;
+		fpsMax: number;
+		frameMax: number;
+		graphHeight: number;
+		graphHistory: number;
+		graphMinHistory: number;
+		profileHistory: number;
+		profilerWidth: number;
+		profilerHeight: number;
+		padSize: number;
+		bezierSize: number;
+	};
+}
 
 export interface CfgOptions {
 	scheduler?: SchedulerMode;

@@ -1,11 +1,9 @@
 import type { GraphOptions, TelemetryGraph } from '@u29dc/cfg-core';
-import { clamp, output, ratio, Series, text } from '@u29dc/cfg-core';
+import { clamp, output, ratio, Series, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { color } from '../utils/color';
 
 type Mode = 'graph' | 'waveform' | 'fps' | 'frame';
-const height = 42;
-const colors = ['#78a6ff', '#ffcc66', '#ff6b8b', '#7ee787'];
 
 export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 	readonly #canvas: HTMLCanvasElement;
@@ -29,13 +27,13 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		);
 		this.#options = options;
 		this.#mode = mode;
-		const history = Math.max(16, Math.floor(options.history ?? 180));
+		const history = Math.max(theme.metrics.graphMinHistory, Math.floor(options.history ?? theme.metrics.graphHistory));
 		const series = options.series?.length ? options.series : [{ label: options.label ?? mode }];
 		this.#series = series.map((item, index) => new Series(seriesOptions(item, index, history)));
 		this.#canvas = owner.doc.createElement('canvas');
 		this.#canvas.className = 'cfg-graph';
 		this.#canvas.width = history;
-		this.#canvas.height = height * ratio();
+		this.#canvas.height = theme.metrics.graphHeight * ratio();
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-graph-readout');
 		this.field.append(this.#canvas, this.#readout);
@@ -105,11 +103,11 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		const canvasHeight = this.#canvas.height;
 		const range = this.#range();
 		ctx.clearRect(0, 0, width, canvasHeight);
-		ctx.fillStyle = '#0f141a';
+		ctx.fillStyle = theme.telemetry.background;
 		ctx.fillRect(0, 0, width, canvasHeight);
 		if (this.#options.target !== undefined) {
 			const y = yOf(this.#options.target, range.min, range.max, canvasHeight);
-			ctx.strokeStyle = '#7d8590';
+			ctx.strokeStyle = theme.telemetry.target;
 			ctx.beginPath();
 			ctx.moveTo(0, y);
 			ctx.lineTo(width, y);
@@ -136,7 +134,7 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 
 	#range() {
 		if (!this.#options.autoscale) {
-			return { min: this.#options.min ?? 0, max: this.#options.max ?? (this.#mode === 'fps' ? 144 : 40) };
+			return { min: this.#options.min ?? 0, max: this.#options.max ?? (this.#mode === 'fps' ? theme.metrics.fpsMax : theme.metrics.frameMax) };
 		}
 		let min = Number.POSITIVE_INFINITY;
 		let max = Number.NEGATIVE_INFINITY;
@@ -157,7 +155,7 @@ function yOf(value: number, min: number, max: number, canvasHeight: number) {
 
 function seriesOptions(item: { id?: string; label?: string; color?: string }, index: number, size: number) {
 	const result: { id?: string; label?: string; color: string; size: number } = {
-		color: color(item.color ?? colors[index % colors.length] ?? colors[0]),
+		color: color(item.color ?? theme.palette.series[index % theme.palette.series.length] ?? theme.palette.blue),
 		size,
 	};
 	if (item.id !== undefined) {

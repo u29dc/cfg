@@ -1,10 +1,11 @@
-import { createCfg, type SettingsSnapshot } from 'cfg';
+import { createCfg, type SettingsSnapshot, theme } from 'cfg';
 import 'cfg/styles.css';
+import { bezierPresets, defaultBezier, densityOptions, modeOptions, paletteOptions, placementOptions } from '../../examples/options';
 import './demo.css';
 
-type Mode = 'calm' | 'normal' | 'intense';
-type Density = 'low' | 'medium' | 'high';
-type Placement = 'nw' | 'ne' | 'sw' | 'se';
+type Mode = (typeof modeOptions)[number];
+type Density = (typeof densityOptions)[number];
+type Placement = (typeof placementOptions)[number];
 
 interface DemoState extends Record<string, unknown> {
 	enabled: boolean;
@@ -41,9 +42,46 @@ if (!root) {
 	throw new Error('demo root not found');
 }
 
+const demoMetrics = {
+	canvasWidth: 1280,
+	canvasHeight: 720,
+	frameClamp: 64,
+	logEvery: 90,
+	tau: Math.PI * 2,
+	centerInfluence: 0.24,
+	phaseStep: 0.07,
+	waveYMultiplier: 1.17,
+	density: { low: 18, medium: 36, high: 72 },
+	scale: { calm: 0.7, normal: 1, intense: 1.35 },
+	shape: {
+		baseSize: 8,
+		gainSize: 18,
+		sizeCycle: 5,
+		cornerRadius: 4,
+		accentEvery: 3,
+		activeAlpha: 0.32,
+		gainAlpha: 0.48,
+		disabledAlpha: 0.12,
+	},
+	marker: {
+		offset: 64,
+		half: 18,
+		size: 36,
+		lineWidth: 2,
+	},
+	text: {
+		font: '16px ui-monospace, monospace',
+		inset: 24,
+	},
+	workload: {
+		base: 2.5,
+		gain: 4,
+	},
+} as const;
+
 root.innerHTML = `
 	<section class="demo-stage">
-		<canvas class="demo-canvas" width="1280" height="720" aria-label="cfg animated runtime demo"></canvas>
+		<canvas class="demo-canvas" width="${demoMetrics.canvasWidth}" height="${demoMetrics.canvasHeight}" aria-label="cfg animated runtime demo"></canvas>
 		<div class="demo-hud" aria-live="polite">
 			<strong data-demo-label></strong>
 			<span data-demo-mode></span>
@@ -72,13 +110,13 @@ const state: DemoState = {
 	mode: 'normal',
 	density: 'medium',
 	placement: 'ne',
-	color: '#78a6ff',
-	accent: '#ffcc66',
+	color: theme.palette.blue,
+	accent: theme.palette.gold,
 	point: { x: 0.1, y: 0.2 },
 	position: { x: 0, y: 24, z: 64 },
 	rotation: { x: 0, y: 0, z: 0, w: 1 },
 	range: { min: 20, max: 80 },
-	easing: [0.25, 0.1, 0.25, 1],
+	easing: [...defaultBezier],
 	image: '',
 };
 
@@ -99,9 +137,9 @@ basics.text(state, 'label', { id: 'label', label: 'Label' });
 basics.multiline(state, 'notes', { id: 'notes', label: 'Notes', rows: 3 });
 
 const choices = controls.folder('Choices');
-choices.segmented(state, 'mode', { id: 'mode', label: 'Mode', options: ['calm', 'normal', 'intense'] as const });
-choices.select(state, 'density', { id: 'density', label: 'Density', options: ['low', 'medium', 'high'] as const });
-choices.radioGrid(state, 'placement', { id: 'placement', label: 'Place', columns: 2, options: ['nw', 'ne', 'sw', 'se'] as const });
+choices.segmented(state, 'mode', { id: 'mode', label: 'Mode', options: modeOptions });
+choices.select(state, 'density', { id: 'density', label: 'Density', options: densityOptions });
+choices.radioGrid(state, 'placement', { id: 'placement', label: 'Place', columns: 2, options: placementOptions });
 
 const vectors = controls.folder('Vectors');
 vectors.point(state, 'point', { id: 'point', label: 'Point', min: -1, max: 1, step: 0.01 });
@@ -112,10 +150,7 @@ vectors.interval(state, 'range', { id: 'range', label: 'Range', min: 0, max: 100
 vectors.cubicBezier(state, 'easing', {
 	id: 'easing',
 	label: 'Easing',
-	presets: [
-		{ label: 'Standard', value: [0.25, 0.1, 0.25, 1] },
-		{ label: 'Out', value: [0, 0, 0.2, 1] },
-	],
+	presets: bezierPresets,
 });
 
 const colorPane = controls.folder('Color');
@@ -123,12 +158,7 @@ colorPane.color(state, 'color', { id: 'color', label: 'Primary' });
 colorPane.palette(state, 'accent', {
 	id: 'accent',
 	label: 'Accent',
-	colors: [
-		{ label: 'Blue', value: '#78a6ff' },
-		{ label: 'Gold', value: '#ffcc66' },
-		{ label: 'Rose', value: '#ff6b8b' },
-		{ label: 'Green', value: '#7ee787' },
-	],
+	colors: paletteOptions,
 });
 colorPane.image(state, 'image', { id: 'image', label: 'Image', accept: 'image/png,image/jpeg,image/webp', allowRemotePreview: false });
 
@@ -165,17 +195,17 @@ actions.buttonGroup({
 });
 
 const telemetry = cfg.pane({ id: 'telemetry', title: 'Telemetry' });
-const fps = telemetry.fpsGraph({ id: 'fps', label: 'FPS', min: 0, max: 144, target: 60, history: 180 });
-const frame = telemetry.frameGraph({ id: 'frame', label: 'Frame', min: 0, max: 40, target: 16.67, unit: 'ms', history: 180 });
+const fps = telemetry.fpsGraph({ id: 'fps', label: 'FPS', min: 0, max: theme.metrics.fpsMax, target: theme.metrics.fpsTarget, history: theme.metrics.graphHistory });
+const frame = telemetry.frameGraph({ id: 'frame', label: 'Frame', min: 0, max: theme.metrics.frameMax, target: theme.metrics.frameBudget, unit: 'ms', history: theme.metrics.graphHistory });
 const wave = telemetry.waveformGraph({
 	id: 'wave',
 	label: 'Wave',
 	min: -1,
 	max: 1,
-	history: 180,
+	history: theme.metrics.graphHistory,
 	series: [
-		{ label: 'sin', color: '#78a6ff' },
-		{ label: 'cos', color: '#ffcc66' },
+		{ label: 'sin', color: theme.palette.blue },
+		{ label: 'cos', color: theme.palette.gold },
 	],
 });
 const profiler = telemetry.profiler({ id: 'profiler', label: 'Profiler' });
@@ -192,7 +222,7 @@ function loop(time: number) {
 	profiler.measure('state', () => update(time));
 	profiler.measure('draw', () => draw(time));
 	profiler.measure('workload', () => {
-		workloadCost = state.fakeWork ? busy(2.5 + state.gain * 4) : 0;
+		workloadCost = state.fakeWork ? busy(demoMetrics.workload.base + state.gain * demoMetrics.workload.gain) : 0;
 	});
 	cfg.endFrame(time);
 	cfg.renderFrame(time);
@@ -200,11 +230,11 @@ function loop(time: number) {
 }
 
 function update(time: number) {
-	const dt = Math.min(64, time - lastTime || 16.67);
+	const dt = Math.min(demoMetrics.frameClamp, time - lastTime || theme.metrics.frameBudget);
 	lastTime = time;
 	frameCount += 1;
 	pulse += (dt / 1000) * state.speed;
-	if (frameCount % 90 === 0) {
+	if (frameCount % demoMetrics.logEvery === 0) {
 		log.push(`${state.mode} ${frameCount}`);
 	}
 	labelNode.textContent = state.label;
@@ -222,7 +252,7 @@ function update(time: number) {
 		null,
 		2,
 	);
-	wave.push([Math.sin(pulse * Math.PI * 2), Math.cos(pulse * Math.PI * 2)]);
+	wave.push([Math.sin(pulse * demoMetrics.tau), Math.cos(pulse * demoMetrics.tau)]);
 	fps.push(1_000 / dt);
 	frame.push(dt);
 }
@@ -231,38 +261,38 @@ function draw(time: number) {
 	const width = canvas.width;
 	const height = canvas.height;
 	ctx.clearRect(0, 0, width, height);
-	ctx.fillStyle = '#101316';
+	ctx.fillStyle = theme.palette.ink;
 	ctx.fillRect(0, 0, width, height);
-	const count = state.density === 'low' ? 18 : state.density === 'medium' ? 36 : 72;
-	const scale = state.mode === 'calm' ? 0.7 : state.mode === 'normal' ? 1 : 1.35;
+	const count = demoMetrics.density[state.density];
+	const scale = demoMetrics.scale[state.mode];
 	const range = Math.max(1, state.range.max - state.range.min);
 	for (let index = 0; index < count; index += 1) {
-		const phase = pulse + index * 0.07;
+		const phase = pulse + index * demoMetrics.phaseStep;
 		const radius = state.range.min + ((index % range) / range) * state.range.max;
-		const x = width * (0.5 + state.point.x * 0.24) + Math.cos(phase) * radius * scale + state.position.x;
-		const y = height * (0.5 - state.point.y * 0.24) + Math.sin(phase * 1.17) * radius * scale - state.position.y;
-		const size = 8 + state.gain * 18 + (index % 5);
-		ctx.globalAlpha = state.enabled ? 0.32 + state.gain * 0.48 : 0.12;
-		ctx.fillStyle = index % 3 === 0 ? state.accent : state.color;
+		const x = width * (0.5 + state.point.x * demoMetrics.centerInfluence) + Math.cos(phase) * radius * scale + state.position.x;
+		const y = height * (0.5 - state.point.y * demoMetrics.centerInfluence) + Math.sin(phase * demoMetrics.waveYMultiplier) * radius * scale - state.position.y;
+		const size = demoMetrics.shape.baseSize + state.gain * demoMetrics.shape.gainSize + (index % demoMetrics.shape.sizeCycle);
+		ctx.globalAlpha = state.enabled ? demoMetrics.shape.activeAlpha + state.gain * demoMetrics.shape.gainAlpha : demoMetrics.shape.disabledAlpha;
+		ctx.fillStyle = index % demoMetrics.shape.accentEvery === 0 ? state.accent : state.color;
 		ctx.beginPath();
-		ctx.roundRect(x - size / 2, y - size / 2, size, size, 4);
+		ctx.roundRect(x - size / 2, y - size / 2, size, size, demoMetrics.shape.cornerRadius);
 		ctx.fill();
 	}
 	ctx.globalAlpha = 1;
 	ctx.strokeStyle = state.accent;
-	ctx.lineWidth = 2;
+	ctx.lineWidth = demoMetrics.marker.lineWidth;
 	const marker = anchor(state.placement, width, height);
-	ctx.strokeRect(marker.x - 18, marker.y - 18, 36, 36);
-	ctx.fillStyle = '#e6e8eb';
-	ctx.font = '16px ui-monospace, monospace';
-	ctx.fillText(`${Math.round(time)}ms`, 24, height - 24);
+	ctx.strokeRect(marker.x - demoMetrics.marker.half, marker.y - demoMetrics.marker.half, demoMetrics.marker.size, demoMetrics.marker.size);
+	ctx.fillStyle = theme.palette.text;
+	ctx.font = demoMetrics.text.font;
+	ctx.fillText(`${Math.round(time)}ms`, demoMetrics.text.inset, height - demoMetrics.text.inset);
 }
 
 function anchor(placement: Placement, width: number, height: number) {
-	const left = 64;
-	const right = width - 64;
-	const top = 64;
-	const bottom = height - 64;
+	const left = demoMetrics.marker.offset;
+	const right = width - demoMetrics.marker.offset;
+	const top = demoMetrics.marker.offset;
+	const bottom = height - demoMetrics.marker.offset;
 	return {
 		x: placement.endsWith('w') ? left : right,
 		y: placement.startsWith('n') ? top : bottom,

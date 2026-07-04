@@ -1,5 +1,5 @@
 import type { ColorOptions, PaletteColor, PaletteOptions, PaletteSection } from '@u29dc/cfg-core';
-import { el } from '@u29dc/cfg-core';
+import { el, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { Binding } from '../binding';
 import { color, six, swatch } from '../utils/color';
@@ -64,7 +64,7 @@ export class PaletteControl<T extends Record<string, unknown>, K extends keyof T
 		const items = flatten(options.colors);
 		const binding = new Binding(target, key, (value) => {
 			const parsed = color(value);
-			return items.some((item) => item.value === parsed) ? parsed : (items[0]?.value ?? '#000000');
+			return items.some((item) => item.value === parsed) ? parsed : (items[0]?.value ?? theme.palette.black);
 		});
 		super(owner, 'palette', options, binding.get());
 		this.#binding = binding;

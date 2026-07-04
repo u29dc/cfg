@@ -1,9 +1,11 @@
+import { theme } from '@u29dc/cfg-core';
+
 const hex = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i;
 
 export function color(value: unknown) {
 	if (typeof value !== 'string') {
-		return '#000000';
+		return theme.palette.black;
 	}
 	const next = value.trim();
 	if (hex.test(next)) {
@@ -12,7 +14,7 @@ export function color(value: unknown) {
 	if (rgb.test(next)) {
 		return next;
 	}
-	return '#000000';
+	return theme.palette.black;
 }
 
 export function six(value: string) {
@@ -22,7 +24,7 @@ export function six(value: string) {
 	}
 	const match = rgb.exec(parsed);
 	if (!match) {
-		return '#000000';
+		return theme.palette.black;
 	}
 	const [, r, g, b] = match;
 	return `#${[r, g, b].map((channel) => Number(channel).toString(16).padStart(2, '0')).join('')}`;
@@ -33,7 +35,7 @@ export function swatch(ctx: CanvasRenderingContext2D | null, value: string, size
 		return;
 	}
 	ctx.clearRect(0, 0, size, size);
-	ctx.fillStyle = '#0f141a';
+	ctx.fillStyle = theme.canvas.surface;
 	ctx.fillRect(0, 0, size, size);
 	ctx.fillStyle = color(value);
 	ctx.fillRect(2, 2, size - 4, size - 4);

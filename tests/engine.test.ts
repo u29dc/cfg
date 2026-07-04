@@ -4,6 +4,9 @@ import { Engine, Profile, Ring, Settings } from '@u29dc/cfg-core';
 
 describe('Engine', () => {
 	test('external mode samples frames without creating an internal RAF loop', () => {
+		const secondFrameTime = 16;
+		const secondClockStart = 120;
+		const secondClockEnd = 127;
 		let now = 0;
 		let rafCalls = 0;
 		const rendered: number[] = [];
@@ -31,14 +34,14 @@ describe('Engine', () => {
 		now = 104;
 		engine.endFrame();
 		engine.renderFrame(0);
-		now = 120;
-		engine.beginFrame(16);
-		now = 127;
+		now = secondClockStart;
+		engine.beginFrame(secondFrameTime);
+		now = secondClockEnd;
 		engine.endFrame();
-		engine.renderFrame(16);
+		engine.renderFrame(secondFrameTime);
 
 		expect(rafCalls).toBe(0);
-		expect(rendered).toEqual([0, 16]);
+		expect(rendered).toEqual([0, secondFrameTime]);
 		expect(profilerFrames).toEqual([1, 2]);
 		expect(profilerDurations).toEqual([4, 7]);
 		expect(sampled[0]).toEqual(['frame', 4]);
@@ -47,6 +50,7 @@ describe('Engine', () => {
 	});
 
 	test('internal mode uses one RAF loop and stops cleanly', () => {
+		const rafId = 7;
 		let callback: ((time: number) => void) | undefined;
 		const cancelled: number[] = [];
 		const engine = new Engine({
@@ -54,7 +58,7 @@ describe('Engine', () => {
 			clock: () => 10,
 			raf: (next) => {
 				callback = next;
-				return 42;
+				return rafId;
 			},
 			cancelRaf: (id) => cancelled.push(id),
 		});
@@ -63,7 +67,7 @@ describe('Engine', () => {
 		engine.start();
 		expect(typeof callback).toBe('function');
 		engine.stop();
-		expect(cancelled).toEqual([42]);
+		expect(cancelled).toEqual([rafId]);
 	});
 });
 

@@ -1,5 +1,10 @@
-import { type Cfg, createCfg, type Pane, type SettingsSnapshot } from 'cfg';
+import { type Cfg, createCfg, type Pane, type SettingsSnapshot, theme } from 'cfg';
 import 'cfg/styles.css';
+import { bezierPresets, defaultBezier, densityOptions, modeOptions, paletteOptions, placementOptions } from './options';
+
+type Mode = (typeof modeOptions)[number];
+type Density = (typeof densityOptions)[number];
+type Placement = (typeof placementOptions)[number];
 
 type ExampleState = Record<string, unknown> & {
 	enabled: boolean;
@@ -7,9 +12,9 @@ type ExampleState = Record<string, unknown> & {
 	gain: number;
 	label: string;
 	notes: string;
-	mode: 'calm' | 'normal' | 'intense';
-	density: 'low' | 'medium' | 'high';
-	placement: 'nw' | 'ne' | 'sw' | 'se';
+	mode: Mode;
+	density: Density;
+	placement: Placement;
 	color: string;
 	token: string;
 	point: { x: number; y: number };
@@ -32,13 +37,13 @@ export function mountPublicExample(root: HTMLElement): () => void {
 		mode: 'normal',
 		density: 'medium',
 		placement: 'ne',
-		color: '#78a6ff',
-		token: '#ffcc66',
+		color: theme.palette.blue,
+		token: theme.palette.gold,
 		point: { x: 0, y: 0 },
 		position: { x: 0, y: 1, z: 2 },
 		quaternion: { x: 0, y: 0, z: 0, w: 1 },
 		range: { min: 10, max: 60 },
-		easing: [0.25, 0.1, 0.25, 1],
+		easing: [...defaultBezier],
 		image: '',
 	};
 	const cfg: Cfg = createCfg({
@@ -53,10 +58,10 @@ export function mountPublicExample(root: HTMLElement): () => void {
 	basics.slider(state, 'gain', { min: 0, max: 1, step: 0.001 });
 	basics.text(state, 'label');
 	basics.multiline(state, 'notes', { rows: 3 });
-	basics.segmented(state, 'mode', { options: ['calm', 'normal', 'intense'] as const });
-	basics.select(state, 'density', { options: ['low', 'medium', 'high'] as const });
-	basics.radioGrid(state, 'placement', { columns: 2, options: ['nw', 'ne', 'sw', 'se'] as const });
-	basics.radioGroup(state, 'mode', { options: ['calm', 'normal', 'intense'] as const });
+	basics.segmented(state, 'mode', { options: modeOptions });
+	basics.select(state, 'density', { options: densityOptions });
+	basics.radioGrid(state, 'placement', { columns: 2, options: placementOptions });
+	basics.radioGroup(state, 'mode', { options: modeOptions });
 
 	const spatial = controls.folder('Spatial');
 	spatial.point(state, 'point', { min: -1, max: 1, step: 0.01 });
@@ -65,33 +70,24 @@ export function mountPublicExample(root: HTMLElement): () => void {
 	spatial.vector3(state, 'position', { min: -100, max: 100, step: 0.01 });
 	spatial.vector4(state, 'quaternion', { min: -1, max: 1, step: 0.001 });
 	spatial.interval(state, 'range', { min: 0, max: 100, step: 1 });
-	spatial.cubicBezier(state, 'easing', {
-		presets: [
-			{ label: 'Standard', value: [0.25, 0.1, 0.25, 1] },
-			{ label: 'Out', value: [0, 0, 0.2, 1] },
-		],
-	});
+	spatial.cubicBezier(state, 'easing', { presets: bezierPresets });
 
 	const media = controls.folder('Media');
 	media.color(state, 'color');
 	media.palette(state, 'token', {
-		colors: [
-			{ label: 'Blue', value: '#78a6ff' },
-			{ label: 'Gold', value: '#ffcc66' },
-			{ label: 'Rose', value: '#ff6b8b' },
-		],
+		colors: paletteOptions,
 	});
 	media.image(state, 'image', { accept: 'image/png,image/jpeg,image/webp' });
 
 	const telemetry = cfg.pane({ id: 'telemetry', title: 'Telemetry', collapsed: false });
-	const fps = telemetry.fpsGraph({ label: 'FPS', min: 0, max: 144, target: 60, history: 120 });
-	const frame = telemetry.frameGraph({ label: 'Frame', min: 0, max: 40, target: 16.67, unit: 'ms', history: 120 });
+	const fps = telemetry.fpsGraph({ label: 'FPS', min: 0, max: theme.metrics.fpsMax, target: theme.metrics.fpsTarget, history: theme.metrics.profileHistory });
+	const frame = telemetry.frameGraph({ label: 'Frame', min: 0, max: theme.metrics.frameMax, target: theme.metrics.frameBudget, unit: 'ms', history: theme.metrics.profileHistory });
 	const waveform = telemetry.waveformGraph({
 		label: 'Waveform',
 		min: -1,
 		max: 1,
-		history: 120,
-		series: [{ label: 'sin' }, { label: 'cos', color: '#ffcc66' }],
+		history: theme.metrics.profileHistory,
+		series: [{ label: 'sin' }, { label: 'cos', color: theme.palette.gold }],
 	});
 	const profiler = telemetry.profiler({ label: 'Profiler' });
 	const log = telemetry.logMonitor({ label: 'Events', rows: 4 });
@@ -122,12 +118,12 @@ export function mountPublicExample(root: HTMLElement): () => void {
 	enabled.on('change', (value) => log.push(`enabled ${value}`));
 
 	return () => {
-		time += 16.67;
+		time += theme.metrics.frameBudget;
 		cfg.beginFrame(time);
 		profiler.measure('work', () => {
 			waveform.push([Math.sin(time / 300), Math.cos(time / 300)]);
 			fps.push(60);
-			frame.push(16.67);
+			frame.push(theme.metrics.frameBudget);
 		});
 		cfg.endFrame(time);
 		cfg.renderFrame(time);

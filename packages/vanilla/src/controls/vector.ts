@@ -1,10 +1,10 @@
 import type { BezierOptions, BezierTuple, NumberOptions, Vector2, VectorOptions } from '@u29dc/cfg-core';
-import { axis, clamp, el, number, snap, text } from '@u29dc/cfg-core';
+import { axis, clamp, el, number, snap, text, theme } from '@u29dc/cfg-core';
 import { Base, type Owner } from '../base';
 import { Binding, bezier, interval, vector } from '../binding';
 
-const padSize = 96;
-const bezierSize = 96;
+const padSize = theme.metrics.padSize;
+const bezierSize = theme.metrics.bezierSize;
 
 export class VectorControl<T extends Record<string, unknown>, K extends keyof T> extends Base<unknown> {
 	readonly #binding: Binding<unknown>;
@@ -341,16 +341,16 @@ function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: 
 	const yRatio = (value.y - min) / (max - min);
 	const y = (options.invertY ? yRatio : 1 - yRatio) * padSize;
 	ctx.clearRect(0, 0, padSize, padSize);
-	ctx.fillStyle = '#11161d';
+	ctx.fillStyle = theme.canvas.panel;
 	ctx.fillRect(0, 0, padSize, padSize);
-	ctx.strokeStyle = '#303a45';
+	ctx.strokeStyle = theme.canvas.grid;
 	ctx.beginPath();
 	ctx.moveTo(padSize / 2, 0);
 	ctx.lineTo(padSize / 2, padSize);
 	ctx.moveTo(0, padSize / 2);
 	ctx.lineTo(padSize, padSize / 2);
 	ctx.stroke();
-	ctx.fillStyle = '#78a6ff';
+	ctx.fillStyle = theme.palette.blue;
 	ctx.beginPath();
 	ctx.arc(clamp(x, 0, padSize), clamp(y, 0, padSize), 4, 0, Math.PI * 2);
 	ctx.fill();
@@ -370,9 +370,9 @@ function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple) {
 	const [cx, cy] = point(x2, y2);
 	const [dx, dy] = point(1, 1);
 	ctx.clearRect(0, 0, bezierSize, bezierSize);
-	ctx.fillStyle = '#11161d';
+	ctx.fillStyle = theme.canvas.panel;
 	ctx.fillRect(0, 0, bezierSize, bezierSize);
-	ctx.strokeStyle = '#78a6ff';
+	ctx.strokeStyle = theme.palette.blue;
 	ctx.beginPath();
 	ctx.moveTo(ax, ay);
 	ctx.bezierCurveTo(bx, by, cx, cy, dx, dy);
