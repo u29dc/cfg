@@ -28,6 +28,8 @@ export class VectorControl<T extends Record<string, unknown>> extends Base<unkno
 		for (const axisName of axes) {
 			row.append(this.#axis(axisName));
 		}
+		row.setAttribute('role', 'group');
+		this.groupLabel(row);
 		this.field.append(row);
 		this.render();
 	}
@@ -118,6 +120,9 @@ export class XyPad<T extends Record<string, unknown>> extends Base<Vector2> {
 		this.#y.disabled = this.disabled;
 		const fields = el(owner.doc, 'div', 'cfg-vector cfg-vector--pad');
 		fields.append(axis(owner.doc, 'X', this.#x), axis(owner.doc, 'Y', this.#y));
+		this.#canvas.setAttribute('role', 'img');
+		this.#canvas.setAttribute('aria-labelledby', this.labelId);
+		this.groupLabel(this.#canvas);
 		this.field.append(this.#canvas, fields);
 		this.#x.addEventListener('input', () => this.#setField('x', this.#x.value));
 		this.#y.addEventListener('input', () => this.#setField('y', this.#y.value));
@@ -220,6 +225,8 @@ export class Interval<T extends Record<string, unknown>> extends Base<unknown> {
 		this.#max.disabled = this.disabled;
 		const row = el(owner.doc, 'div', 'cfg-vector');
 		row.append(axis(owner.doc, 'Min', this.#min), axis(owner.doc, 'Max', this.#max));
+		row.setAttribute('role', 'group');
+		this.groupLabel(row);
 		this.field.append(row);
 		this.#min.addEventListener('input', () => this.#update());
 		this.#max.addEventListener('input', () => this.#update());
@@ -270,7 +277,10 @@ export class Bezier<T extends Record<string, unknown>> extends Base<BezierTuple>
 		this.#canvas.className = 'cfg-bezier';
 		this.#canvas.width = bezierSize;
 		this.#canvas.height = bezierSize;
+		this.#canvas.setAttribute('role', 'img');
+		this.#canvas.setAttribute('aria-labelledby', this.labelId);
 		this.#canvas.setAttribute('aria-disabled', String(this.disabled));
+		this.groupLabel(this.#canvas);
 		this.#ctx = this.#canvas.getContext('2d');
 		this.field.append(this.#canvas, this.#fields(), this.#presets(options));
 		this.#canvas.addEventListener('pointerdown', (event) => this.#pointer(event));

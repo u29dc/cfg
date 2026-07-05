@@ -21,6 +21,8 @@ export class Monitor<T> extends Base<T> {
 		this.#interval = theme.metrics.millisPerSecond / (options.throttleHz ?? theme.metrics.monitorHz);
 		this.#value = initial;
 		this.#readout = output(owner.doc, 'cfg-readout');
+		this.#readout.id = `${this.id}-input`;
+		this.connectLabel(this.#readout.id);
 		this.field.append(this.#readout);
 		this.render();
 	}
@@ -66,6 +68,9 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 		this.#readout = owner.doc.createElement('pre');
 		this.#readout.className = 'cfg-log';
 		this.#readout.dataset['cfgRows'] = String(this.#rows);
+		this.#readout.setAttribute('role', 'log');
+		this.#readout.setAttribute('aria-live', 'polite');
+		this.groupLabel(this.#readout);
 		this.field.append(this.#readout);
 	}
 

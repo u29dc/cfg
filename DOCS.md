@@ -26,13 +26,13 @@ The repository uses Bun workspaces internally:
 From the private GitHub tag:
 
 ```sh
-bun add github:u29dc/cfg#v1.0.4
+bun add github:u29dc/cfg#v1.0.5
 ```
 
 If private-repo auth requires SSH:
 
 ```sh
-bun add git+ssh://git@github.com/u29dc/cfg.git#v1.0.4
+bun add git+ssh://git@github.com/u29dc/cfg.git#v1.0.5
 ```
 
 ## Quick Start
@@ -384,6 +384,7 @@ Tweakpane Essentials and profiler plugins show that compact diagnostics are
 valuable. `cfg` keeps FPS, frame-time, waveform, log, and profiler surfaces in
 the core package instead of requiring a plugin marketplace in v1.
 
-The default CSS skin adapts Tweakpane's MIT-licensed compact theme mechanics to
-`cfg` class names and DOM. The JavaScript runtime, plugin system, and class names
-are not copied.
+The default CSS skin uses cfg-owned class names and DOM while following compact
+runtime-pane conventions: dense rows, clear hierarchy, restrained light/dark
+contrast, and direct control states. The JavaScript runtime, plugin system, and
+class names are cfg-specific.

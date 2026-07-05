@@ -56,9 +56,11 @@ export abstract class Base<T> implements Control<T> {
 	readonly label: string;
 	readonly element: HTMLElement;
 	readonly field: HTMLElement;
+	readonly labelId: string;
 	readonly serialize: boolean;
 	readonly owner: Owner;
 	readonly disabled: boolean;
+	protected readonly labelElement: HTMLLabelElement;
 	readonly #events = new Events<T>();
 	readonly #initial: T;
 	readonly #cleanups: (() => void)[] = [];
@@ -68,6 +70,7 @@ export abstract class Base<T> implements Control<T> {
 		this.owner = owner;
 		this.id = owner.create(kind, options?.id);
 		this.label = options?.label ?? label(this.id);
+		this.labelId = `${this.id}-label`;
 		this.serialize = options?.serialize ?? true;
 		this.disabled = options?.disabled ?? false;
 		this.#initial = clone(initial);
@@ -78,8 +81,10 @@ export abstract class Base<T> implements Control<T> {
 		this.element.dataset['cfgDisabled'] = String(this.disabled);
 
 		const labelNode = el(owner.doc, 'label', 'cfg-control__label');
+		labelNode.id = this.labelId;
 		labelNode.textContent = this.label;
 		labelNode.htmlFor = `${this.id}-input`;
+		this.labelElement = labelNode;
 
 		this.field = el(owner.doc, 'div', 'cfg-control__field');
 		this.element.append(labelNode, this.field);
@@ -124,6 +129,15 @@ export abstract class Base<T> implements Control<T> {
 
 	protected emit(event: ControlEvent) {
 		this.#events.emit(event, this.get());
+	}
+
+	protected connectLabel(id: string) {
+		this.labelElement.htmlFor = id;
+	}
+
+	protected groupLabel(element: HTMLElement) {
+		this.labelElement.removeAttribute('for');
+		element.setAttribute('aria-labelledby', this.labelId);
 	}
 
 	folder(labelText: string, options?: FolderOptions) {

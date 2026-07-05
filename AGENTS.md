@@ -2,8 +2,7 @@
 
 ## 1. Documentation
 
-- Product contract: [`PROMPT.md`](PROMPT.md)
-- Human usage guide: [`DOCS.md`](DOCS.md)
+- Human usage and product guide: [`DOCS.md`](DOCS.md)
 - Package source entry: [`packages/vanilla/src/index.ts`](packages/vanilla/src/index.ts)
 - Demo entry: [`demo/src/main.ts`](demo/src/main.ts)
 - Benchmark runner: [`scripts/bench.ts`](scripts/bench.ts)

@@ -42,6 +42,8 @@ export class Graph extends Base<readonly number[]> implements TelemetryGraph {
 		this.#canvas.className = 'cfg-graph';
 		this.#canvas.width = theme.metrics.graphWidth;
 		this.#canvas.height = theme.metrics.graphHeight;
+		this.#canvas.setAttribute('role', 'img');
+		this.groupLabel(this.#canvas);
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-graph-readout');
 		this.field.append(this.#canvas, this.#readout);

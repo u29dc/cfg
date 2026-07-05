@@ -23,11 +23,11 @@
     },
     "packages/core": {
       "name": "@u29dc/cfg-core",
-      "version": "1.0.4",
+      "version": "1.0.5",
     },
     "packages/vanilla": {
       "name": "@u29dc/cfg-vanilla",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "dependencies": {
         "@u29dc/cfg-core": "workspace:*",
       },

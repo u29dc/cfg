@@ -21,9 +21,12 @@ export class ChoiceControl<T extends Record<string, unknown>, V extends ChoiceVa
 
 		if (mode === 'select') {
 			this.#select = this.#createSelect();
+			this.connectLabel(this.#select.id);
 			this.field.append(this.#select);
 		} else {
-			this.field.append(this.#createButtons(mode, options.columns));
+			const buttons = this.#createButtons(mode, options.columns);
+			this.groupLabel(buttons);
+			this.field.append(buttons);
 		}
 		this.render();
 	}
@@ -75,6 +78,7 @@ export class ChoiceControl<T extends Record<string, unknown>, V extends ChoiceVa
 
 	#createButtons(mode: Exclude<Mode, 'select'>, columns = 3) {
 		const row = el(this.owner.doc, 'div', `cfg-choice-row cfg-choice-row--${mode}`);
+		row.setAttribute('role', 'group');
 		if (mode === 'radio-grid') {
 			row.dataset['cfgColumns'] = String(columns);
 		}

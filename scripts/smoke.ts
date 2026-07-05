@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const expectedPackage = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version?: string };
 const tmp = join(root, '.tmp', 'release');
 const packDir = join(tmp, 'pack');
 const consumer = join(tmp, 'consumer');
@@ -91,6 +92,17 @@ for (const file of ['index.js', 'index.d.ts', 'styles.css', 'styles.css.d.ts']) 
 	if (!installed.includes(file)) {
 		throw new Error(`package smoke missing dist/${file}`);
 	}
+}
+const packageRoot = join(consumer, 'node_modules', 'cfg');
+const packaged = readdirSync(packageRoot);
+for (const file of ['PROMPT.md', 'LICENSE']) {
+	if (packaged.includes(file)) {
+		throw new Error(`package smoke unexpectedly included ${file}`);
+	}
+}
+const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8')) as { version?: string };
+if (packageJson.version !== expectedPackage.version) {
+	throw new Error(`package smoke expected version ${expectedPackage.version ?? 'missing'}, got ${packageJson.version ?? 'missing'}`);
 }
 
 function run(cwd: string, command: string, args: string[]) {

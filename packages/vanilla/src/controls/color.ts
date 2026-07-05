@@ -53,6 +53,7 @@ export class ColorControl<T extends Record<string, unknown>> extends Base<string
 		row.append(this.#toggle, this.#text);
 		this.#toggle.setAttribute('aria-controls', `${this.id}-panel`);
 		this.field.append(row);
+		this.connectLabel(this.#text.id);
 		this.#toggle.addEventListener('click', () => this.#setOpen(!this.#open));
 		this.#toggle.addEventListener('keydown', (event) => this.#closeKey(event));
 		const closeOutside = (event: PointerEvent) => {
@@ -492,6 +493,8 @@ export class PaletteControl<T extends Record<string, unknown>> extends Base<stri
 		super(owner, 'palette', options, binding.get());
 		this.#binding = binding;
 		const row = el(owner.doc, 'div', 'cfg-palette');
+		row.setAttribute('role', 'group');
+		this.groupLabel(row);
 		for (const item of items) {
 			const button = owner.doc.createElement('button');
 			button.type = 'button';

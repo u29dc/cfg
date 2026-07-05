@@ -24,6 +24,8 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 		this.#canvas.className = 'cfg-profiler';
 		this.#canvas.width = theme.metrics.profilerWidth;
 		this.#canvas.height = theme.metrics.profilerHeight;
+		this.#canvas.setAttribute('role', 'img');
+		this.groupLabel(this.#canvas);
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-profiler-readout');
 		this.field.append(this.#canvas, this.#readout);

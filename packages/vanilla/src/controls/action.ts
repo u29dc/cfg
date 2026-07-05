@@ -66,6 +66,8 @@ export class ButtonGroup extends Base<void> {
 	constructor(owner: Owner, options: ButtonGroupOptions) {
 		super(owner, 'button-group', { ...options, serialize: false }, undefined);
 		const row = el(owner.doc, 'div', 'cfg-button-group');
+		row.setAttribute('role', 'group');
+		this.groupLabel(row);
 		for (const item of options.buttons) {
 			const node = button(owner.doc, undefined, item.label ?? 'Action', item);
 			const click = async () => {

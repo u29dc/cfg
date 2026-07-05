@@ -470,6 +470,8 @@ class TabGroup extends Base<string> implements TabApi {
 		this.element.classList.add('cfg-tabs');
 
 		const nav = el(parent.doc, 'div', 'cfg-tabs__nav');
+		nav.setAttribute('role', 'tablist');
+		this.groupLabel(nav);
 		const pages = el(parent.doc, 'div', 'cfg-tabs__pages');
 		for (let index = 0; index < items.length; index += 1) {
 			const item = items[index];
@@ -484,6 +486,7 @@ class TabGroup extends Base<string> implements TabApi {
 			const button = parent.doc.createElement('button');
 			button.type = 'button';
 			button.className = 'cfg-choice';
+			button.setAttribute('role', 'tab');
 			button.disabled = item.disabled ?? false;
 			button.textContent = item.label;
 			button.dataset['cfgValue'] = item.value;

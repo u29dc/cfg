@@ -68,6 +68,7 @@ export class Numeric<T extends Record<string, unknown>> extends Base<number> {
 			this.#range = rangeInput(owner.doc, `${this.id}-range`, options);
 			this.field.prepend(this.#range);
 		}
+		this.connectLabel((this.#number ?? this.#range)?.id ?? `${this.id}-input`);
 
 		for (const input of [this.#number, this.#range]) {
 			if (!input) {
