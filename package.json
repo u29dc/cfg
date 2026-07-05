@@ -24,10 +24,11 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
+		"AGENTS.md",
+		"DOCS.md",
 		"README.md",
 		"docs",
-		"LICENSE",
-		"NOTICE.md"
+		"LICENSE"
 	],
 	"sideEffects": [
 		"./dist/styles.css"

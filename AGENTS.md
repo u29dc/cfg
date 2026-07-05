@@ -3,9 +3,11 @@
 ## 1. Documentation
 
 - Product contract: [`PROMPT.md`](PROMPT.md)
+- Human usage guide: [`DOCS.md`](DOCS.md)
 - Architecture docs: [`docs/architecture.md`](docs/architecture.md), [`docs/performance.md`](docs/performance.md), [`docs/framework-adapters.md`](docs/framework-adapters.md)
 - Package entry: [`src/index.ts`](src/index.ts)
 - Demo entry: [`demo/src/main.ts`](demo/src/main.ts)
+- [`README.md`](README.md) and [`CLAUDE.md`](CLAUDE.md) intentionally symlink to this file so the root agent contract has one canonical source.
 - This file follows the align template from `/Users/han/Git/dot/agents/skills/align/references/templates/AGENTS.md`.
 
 ## 2. Repository Structure
@@ -80,5 +82,5 @@
 
 - Required local gate before completion: `bun run util:check`.
 - Required browser gate after UI changes: `bun run build`, `bun run test:browser`, then manual browser QA with screenshots under `artifacts/browser-qa/`.
-- Required release gate: clean temporary `bun add github:u29dc/cfg#v1.0.0` and import check for `createCfg` plus `cfg/styles.css`.
+- Required release gate: clean temporary install from the current GitHub release tag and import check for `createCfg` plus `cfg/styles.css`.
 - Required downstream gate: `_www_template` integration dry run from a clean temporary path or carefully reverted local edits.
