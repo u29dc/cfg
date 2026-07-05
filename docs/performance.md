@@ -201,14 +201,15 @@ package export smoke coverage.
 
 ## Release Verification
 
-The original `v1.0.0` tag exists as the initial v1 release cut. The current
-release lane is `v1.0.1`, which includes the final documentation, release
-evidence, and downstream dry-run records that landed after `v1.0.0`.
+The original `v1.0.0` tag exists as the initial v1 release cut. A `v1.0.1` tag
+was pushed before the lockfile refresh and failed CI. The current release lane
+is `v1.0.2`, which includes the final documentation, release evidence,
+downstream dry-run records, and lockfile metadata needed by frozen CI installs.
 
-Before declaring the goal complete, `v1.0.1` must prove:
+Before declaring the goal complete, `v1.0.2` must prove:
 
 - local `bun run util:check`, browser QA, package smoke, and benchmark checks;
 - GitHub Actions on the pushed commit or release tag;
-- clean temporary install from `github:u29dc/cfg#v1.0.1` or the documented SSH
+- clean temporary install from `github:u29dc/cfg#v1.0.2` or the documented SSH
   fallback;
 - `_www_template` disposable integration from the final GitHub tag.
