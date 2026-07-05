@@ -199,16 +199,16 @@ scheduler lifecycle, profiler history clamping, finite graph samples, pointer
 cancel cleanup, interval change events, disabled tabs, disposed panes, and
 package export smoke coverage.
 
-## Residual Risk
+## Release Verification
 
-Known residual risks before release:
+The original `v1.0.0` tag exists as the initial v1 release cut. The current
+release lane is `v1.0.1`, which includes the final documentation, release
+evidence, and downstream dry-run records that landed after `v1.0.0`.
 
-- GitHub Actions is currently disabled for `u29dc/cfg` by repository or
-  organization policy, so remote CI cannot yet prove the pushed commit or tag.
-- The published `v1.0.0` tag predates the latest documentation and evidence
-  commits; a final patch tag should not be created until GitHub Actions can run.
-- Clean install from `github:u29dc/cfg#v1.0.0` and the SSH fallback both need
-  final verification in the intended private-repository auth path before release
-  completion.
-- `_www_template` integration passed from a disposable local tarball dry run;
-  repeat it from the final GitHub tag once private tag installation is unblocked.
+Before declaring the goal complete, `v1.0.1` must prove:
+
+- local `bun run util:check`, browser QA, package smoke, and benchmark checks;
+- GitHub Actions on the pushed commit or release tag;
+- clean temporary install from `github:u29dc/cfg#v1.0.1` or the documented SSH
+  fallback;
+- `_www_template` disposable integration from the final GitHub tag.

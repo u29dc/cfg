@@ -190,8 +190,8 @@ artifacts/browser-qa/www-template-cfg-dryrun-2026-07-05.png
 ```
 
 The source `_www_template` checkout was left clean. Final downstream
-installation still needs to be repeated from the final GitHub tag once private
-tag installation and CI are unblocked.
+installation should be repeated from `v1.0.1` after the patch tag is pushed and
+GitHub CI has run.
 
 ## Avoiding Duplicate RAF Loops
 
