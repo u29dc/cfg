@@ -26,8 +26,7 @@
 		"dist",
 		"AGENTS.md",
 		"DOCS.md",
-		"README.md",
-		"LICENSE"
+		"README.md"
 	],
 	"sideEffects": [
 		"./dist/styles.css"
