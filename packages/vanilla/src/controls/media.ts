@@ -1,9 +1,10 @@
 import type { ImageOptions } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 import { Binding, string } from '../binding';
 import { preview } from '../utils/color';
 
-export class ImageControl<T extends Record<string, unknown>, K extends keyof T> extends Base<string> {
+export class ImageControl<T extends Record<string, unknown>> extends Base<string> {
 	readonly #binding: Binding<string>;
 	readonly #input: HTMLInputElement;
 	readonly #file: HTMLInputElement;
@@ -12,12 +13,15 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 	readonly #preview: HTMLImageElement;
 	readonly #options: ImageOptions;
 	#objectUrl = '';
+	#version = 0;
+	#committed: string;
 
-	constructor(owner: Owner, target: T, key: K, options: ImageOptions = {}) {
-		const binding = new Binding(target, key, (value) => string(value).slice(0, 16_384));
+	constructor(owner: Owner, target: T, key: keyof T, options: ImageOptions = {}) {
+		const binding = new Binding(target, key, (value) => string(value).slice(0, textLimit(options)));
 		super(owner, 'image', options, binding.get());
 		this.#binding = binding;
 		this.#options = options;
+		this.#committed = binding.get();
 		this.#preview = owner.doc.createElement('img');
 		this.#preview.className = 'cfg-image-preview';
 		this.#preview.alt = '';
@@ -50,10 +54,14 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 		this.#input.disabled = this.disabled;
 		this.field.append(this.#preview, this.#input, fileRow, clear);
 		this.#input.addEventListener('input', () => {
+			this.#version += 1;
+			this.#resetFileState();
 			this.#binding.set(this.#input.value);
 			this.render();
 			this.emit('input');
 		});
+		this.#input.addEventListener('change', () => this.#textChange());
+		this.#input.addEventListener('blur', () => this.#textChange());
 		this.#fileButton.addEventListener('click', () => this.#file.click());
 		this.#file.addEventListener('change', () => this.#fileChange());
 		clear.addEventListener('click', () => this.#clear());
@@ -65,13 +73,11 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 	}
 
 	set(value: string) {
+		this.#version += 1;
 		this.#binding.set(value);
-		this.#revoke();
-		if (value === '') {
-			this.#file.value = '';
-		}
+		this.#resetFileState();
 		this.render();
-		this.emit('change');
+		this.#commit();
 	}
 
 	override dispose() {
@@ -97,25 +103,55 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 		if (!file?.type.startsWith('image/')) {
 			return;
 		}
+		const version = this.#version + 1;
+		this.#version = version;
 		this.#revoke();
+		let value = '';
+		let objectUrl = '';
 		if (file.size <= (this.#options.maxPersistBytes ?? 32_768)) {
-			this.#binding.set(await data(file));
+			value = await data(file);
 		} else {
-			this.#objectUrl = URL.createObjectURL(file);
-			this.#binding.set('');
+			objectUrl = URL.createObjectURL(file);
 		}
+		if (this.#version !== version) {
+			if (objectUrl) {
+				URL.revokeObjectURL(objectUrl);
+			}
+			return;
+		}
+		this.#objectUrl = objectUrl;
+		this.#binding.set(value);
 		this.render();
 		this.emit('input');
-		this.emit('change');
+		this.#commit();
 	}
 
 	#clear() {
+		this.#version += 1;
 		this.#binding.set('');
-		this.#file.value = '';
-		this.#revoke();
+		this.#resetFileState();
 		this.render();
 		this.emit('input');
+		this.#commit();
+	}
+
+	#textChange() {
+		this.render();
+		this.#commit();
+	}
+
+	#commit() {
+		const value = this.get();
+		if (value === this.#committed) {
+			return;
+		}
+		this.#committed = value;
 		this.emit('change');
+	}
+
+	#resetFileState() {
+		this.#file.value = '';
+		this.#revoke();
 	}
 
 	#revoke() {
@@ -124,6 +160,10 @@ export class ImageControl<T extends Record<string, unknown>, K extends keyof T> 
 			this.#objectUrl = '';
 		}
 	}
+}
+
+function textLimit(options: ImageOptions) {
+	return Math.ceil((options.maxPersistBytes ?? 32_768) * 1.4) + 256;
 }
 
 async function data(file: File) {

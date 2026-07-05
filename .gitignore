@@ -1,9 +1,5 @@
 node_modules/
 build/
-demo-dist/
-coverage/
-playwright-report/
-test-results/
 *.tsbuildinfo
 .biome
 .DS_Store
@@ -13,7 +9,6 @@ test-results/
 .idea/
 *.log
 .tmp/
-artifacts/
 .clawpatch/
 .env
 .env.*

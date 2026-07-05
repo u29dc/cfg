@@ -1,18 +1,18 @@
 import type { ControlOptions, MultilineOptions, NumberOptions, TextOptions } from '@u29dc/cfg-core';
 import { number as clean, text as format } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 import { Binding, bool, string } from '../binding';
 
-type RecordKey<T> = keyof T;
 const svgNs = 'http://www.w3.org/2000/svg';
 const dragThreshold = 2;
 const guideOffset = 20;
 
-export class Toggle<T extends Record<string, unknown>, K extends RecordKey<T>> extends Base<boolean> {
+export class Toggle<T extends Record<string, unknown>> extends Base<boolean> {
 	readonly #binding: Binding<boolean>;
 	readonly #input: HTMLInputElement;
 
-	constructor(owner: Owner, target: T, key: K, options: ControlOptions = {}) {
+	constructor(owner: Owner, target: T, key: keyof T, options: ControlOptions = {}) {
 		const binding = new Binding(target, key, bool);
 		super(owner, 'toggle', options, binding.get());
 		this.#binding = binding;
@@ -45,14 +45,14 @@ export class Toggle<T extends Record<string, unknown>, K extends RecordKey<T>> e
 	}
 }
 
-export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> extends Base<number> {
+export class Numeric<T extends Record<string, unknown>> extends Base<number> {
 	readonly #binding: Binding<number>;
 	readonly #options: NumberOptions;
 	readonly #number?: HTMLInputElement;
 	readonly #range?: HTMLInputElement;
 	readonly #drag?: NumberDragHandle;
 
-	constructor(owner: Owner, target: T, key: K, options: NumberOptions = {}, mode: 'number' | 'slider' | 'number-slider') {
+	constructor(owner: Owner, target: T, key: keyof T, options: NumberOptions = {}, mode: 'number' | 'slider' | 'number-slider') {
 		const binding = new Binding(target, key, (value) => clean(value, options));
 		super(owner, mode, options, binding.get());
 		this.#binding = binding;
@@ -182,11 +182,11 @@ export class Numeric<T extends Record<string, unknown>, K extends RecordKey<T>> 
 	}
 }
 
-export class Textual<T extends Record<string, unknown>, K extends RecordKey<T>> extends Base<string> {
+export class Textual<T extends Record<string, unknown>> extends Base<string> {
 	readonly #binding: Binding<string>;
 	readonly #input: HTMLInputElement | HTMLTextAreaElement;
 
-	constructor(owner: Owner, target: T, key: K, options: TextOptions | MultilineOptions = {}, multiline = false) {
+	constructor(owner: Owner, target: T, key: keyof T, options: TextOptions | MultilineOptions = {}, multiline = false) {
 		const binding = new Binding(target, key, string);
 		super(owner, multiline ? 'multiline' : 'text', options, binding.get());
 		this.#binding = binding;

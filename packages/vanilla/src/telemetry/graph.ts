@@ -1,5 +1,6 @@
 import type { GraphOptions, TelemetryGraph } from '@u29dc/cfg-core';
 import { clamp, output, Series, text, theme } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 import { fit, observeCanvas } from '../utils/canvas';
 import { color } from '../utils/color';

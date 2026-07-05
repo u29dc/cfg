@@ -1,5 +1,8 @@
 import { mkdir } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
+
+const browserQaDir = '.tmp/tests/browser';
 
 test('demo renders panes, canvas, and external RAF telemetry', async ({ page }) => {
 	await page.goto('/');
@@ -34,8 +37,8 @@ test('demo renders panes, canvas, and external RAF telemetry', async ({ page }) 
 	expect(pixel.length).toBe(4);
 	expect(pixel[3]).toBe(255);
 
-	await mkdir('artifacts/browser-qa', { recursive: true });
-	await page.screenshot({ path: 'artifacts/browser-qa/cfg-demo-browser-qa.png' });
+	await mkdir(browserQaDir, { recursive: true });
+	await page.screenshot({ path: `${browserQaDir}/cfg-demo-browser-qa.png` });
 });
 
 test('representative controls mutate bound and visible state', async ({ page }) => {
@@ -152,8 +155,13 @@ test('theme propagation and custom controls render without native chrome', async
 	await expect(page.locator('[data-cfg-id="image"] .cfg-file-row .cfg-button')).toBeVisible();
 	await page.locator('[data-cfg-id="color"] .cfg-color-toggle').scrollIntoViewIfNeeded();
 	const colorToggle = page.locator('[data-cfg-id="color"] .cfg-color-toggle');
+	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toHaveCount(0);
+	await expect(page.locator('[data-cfg-id="color"] canvas')).toHaveCount(0);
+	await expect(page.locator('[data-cfg-id="color"] .cfg-swatch-preview')).toHaveCount(1);
 	await colorToggle.click();
 	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeVisible();
+	await expect(page.locator('[data-cfg-id="color"] canvas')).toHaveCount(3);
+	await expect(page.locator('.cfg-color-panel')).toHaveCount(1);
 	await expect(colorToggle).toHaveAttribute('aria-controls', /color-panel/);
 	await page.keyboard.press('Escape');
 	await expect(page.locator('[data-cfg-id="color"] .cfg-color-panel')).toBeHidden();
@@ -195,6 +203,39 @@ test('theme propagation and custom controls render without native chrome', async
 	const selected = await page.locator('[data-cfg-id="mode"] button[aria-pressed="true"]').evaluate((node) => getComputedStyle(node).backgroundColor);
 	const unselected = await page.locator('[data-cfg-id="mode"] button', { hasText: 'calm' }).evaluate((node) => getComputedStyle(node).backgroundColor);
 	expect(selected).not.toBe(unselected);
+});
+
+test('provided host containers do not squeeze pane widths', async ({ page }) => {
+	await page.goto('/');
+	const result = await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const host = document.createElement('aside');
+		host.id = 'scratch-narrow-host';
+		host.dataset['controlsPane'] = 'true';
+		host.style.cssText = 'position: fixed; inset: 0 0 auto auto; inline-size: 20rem; overflow: auto;';
+		document.body.append(host);
+		const cfg = demo.createCfg({ root: host, scheduler: 'external' });
+		cfg.pane({ id: 'host-runtime', title: 'Runtime' });
+		cfg.pane({ id: 'host-telemetry', title: 'Telemetry' });
+		const root = host.querySelector<HTMLElement>('.cfg-root');
+		const panes = [...host.querySelectorAll<HTMLElement>('.cfg-pane')];
+		const widths = panes.map((pane) => pane.getBoundingClientRect().width);
+		const rootParent = root?.parentElement?.id;
+		const hostIsRoot = host.classList.contains('cfg-root');
+		const rootWidth = root?.getBoundingClientRect().width ?? 0;
+		cfg.dispose();
+		const emptied = host.childElementCount === 0;
+		host.remove();
+		return { emptied, hostIsRoot, rootParent, rootWidth, widths };
+	});
+	expect(result.hostIsRoot).toBe(false);
+	expect(result.rootParent).toBe('scratch-narrow-host');
+	expect(result.rootWidth).toBeGreaterThan(560);
+	expect(result.widths).toEqual([288, 288]);
+	expect(result.emptied).toBe(true);
 });
 
 test('vector canvases settle to full-width backing stores before interaction', async ({ page }) => {
@@ -317,7 +358,7 @@ test('disabled tabs are skipped by keyboard and rejected by API', async ({ page 
 		});
 		const changes: string[] = [];
 		const choiceChanges: string[] = [];
-		tab.on('change', (value) => changes.push(String(value)));
+		tab.on('change', (value) => changes.push(value));
 		choice.on('change', (value) => choiceChanges.push(String(value)));
 		(window as ScratchWindow).__cfgTabsScratch = {
 			cfg,
@@ -554,6 +595,48 @@ test('compact typography is preserved at mobile widths', async ({ page }) => {
 	await expect(page.locator('[data-cfg-id="runtime"]')).toHaveCSS('scrollbar-width', 'none');
 });
 
+test('touch mobile layout preserves button labels', async ({ browser }) => {
+	const context = await browser.newContext({
+		baseURL: 'http://127.0.0.1:4173',
+		deviceScaleFactor: 3,
+		hasTouch: true,
+		isMobile: true,
+		viewport: { width: 375, height: 812 },
+	});
+	const page = await context.newPage();
+	try {
+		await page.goto('/');
+		await page.evaluate(() => (window as DemoWindow).__cfgDemo?.setTheme?.('dark'));
+		const result = await page.evaluate(() => {
+			const root = document.querySelector('.cfg-root');
+			const input = document.querySelector('.cfg-input');
+			const choice = document.querySelector('.cfg-choice');
+			const fileButton = document.querySelector<HTMLButtonElement>('[data-cfg-id="image"] .cfg-file-row .cfg-button');
+			if (!root || !input || !choice || !fileButton) {
+				throw new Error('touch mobile layout probes missing');
+			}
+			const overflowingButtons = [...document.querySelectorAll<HTMLButtonElement>('.cfg-button, .cfg-choice')]
+				.filter((button) => button.scrollWidth > button.clientWidth + 1)
+				.map((button) => button.textContent?.trim() ?? '');
+			return {
+				button: getComputedStyle(choice).fontSize,
+				fileButtonWidth: fileButton.clientWidth,
+				fileButtonScroll: fileButton.scrollWidth,
+				input: getComputedStyle(input).fontSize,
+				overflowingButtons,
+				root: getComputedStyle(root).fontSize,
+			};
+		});
+		expect(result.root).toBe('11px');
+		expect(result.input).toBe('16px');
+		expect(result.button).toBe('16px');
+		expect(result.fileButtonWidth).toBeGreaterThanOrEqual(result.fileButtonScroll - 1);
+		expect(result.overflowingButtons).toEqual([]);
+	} finally {
+		await context.close();
+	}
+});
+
 test('color text drafts do not commit invalid intermediate values', async ({ page }) => {
 	await page.goto('/');
 	const input = page.locator('[data-cfg-id="color"] input.cfg-input--color');
@@ -573,6 +656,39 @@ test('color text drafts do not commit invalid intermediate values', async ({ pag
 		.toBe('#78a6ff');
 	await input.blur();
 	await expect(input).toHaveValue('#78a6ff');
+});
+
+test('color picker panel and canvases are shared between color controls', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const root = document.createElement('div');
+		root.id = 'scratch-color-root';
+		document.body.append(root);
+		const cfg = demo.createCfg({ root, scheduler: 'external' });
+		const pane = cfg.pane({ id: 'scratch-color-pane', title: 'Color' });
+		const state = { one: '#ff0000', two: '#00ff00' };
+		pane.color(state, 'one', { id: 'scratch-one', label: 'One' });
+		pane.color(state, 'two', { id: 'scratch-two', label: 'Two' });
+		(window as ScratchWindow).__cfgColorScratch = { cfg };
+	});
+
+	await expect(page.locator('#scratch-color-root canvas')).toHaveCount(0);
+	await page.locator('[data-cfg-id="scratch-one"] .cfg-color-toggle').click();
+	await expect(page.locator('#scratch-color-root .cfg-color-panel')).toHaveCount(1);
+	await expect(page.locator('#scratch-color-root canvas')).toHaveCount(3);
+	await expect(page.locator('[data-cfg-id="scratch-one"] .cfg-color-panel')).toBeVisible();
+	await page.locator('[data-cfg-id="scratch-two"] .cfg-color-toggle').click();
+	await expect(page.locator('#scratch-color-root .cfg-color-panel')).toHaveCount(1);
+	await expect(page.locator('#scratch-color-root canvas')).toHaveCount(3);
+	await expect(page.locator('[data-cfg-id="scratch-one"] .cfg-color-panel')).toHaveCount(0);
+	await expect(page.locator('[data-cfg-id="scratch-two"] .cfg-color-panel')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page.locator('#scratch-color-root .cfg-color-panel')).toBeHidden();
+	await page.evaluate(() => (window as ScratchWindow).__cfgColorScratch?.cfg.dispose());
 });
 
 test('number inputs support elastic pointer drag adjustment', async ({ page }) => {
@@ -656,6 +772,9 @@ type ScratchTab = ScratchControl & {
 };
 
 type ScratchWindow = Window & {
+	__cfgColorScratch?: {
+		cfg: ScratchCfg;
+	};
 	__cfgPointerScratch?: {
 		cfg: ScratchCfg;
 		changes: () => { bezier: number; pad: number };

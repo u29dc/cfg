@@ -18,7 +18,7 @@ export class Settings {
 	}
 
 	export(): SettingsSnapshot {
-		const values: Record<string, unknown> = {};
+		const values = Object.create(null) as Record<string, unknown>;
 		for (const [id, item] of this.#items) {
 			if (item.serialize) {
 				values[id] = clone(item.get());
@@ -31,7 +31,7 @@ export class Settings {
 		};
 	}
 
-	apply(snapshot: SettingsSnapshot | string | unknown) {
+	apply(snapshot: SettingsSnapshot | string) {
 		const value = typeof snapshot === 'string' ? parse(snapshot) : snapshot;
 		if (!isSnapshot(value)) {
 			throw new Error('cfg settings import expected a version 1 snapshot');

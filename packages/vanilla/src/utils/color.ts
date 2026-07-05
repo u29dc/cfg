@@ -1,5 +1,4 @@
 import { clamp, theme } from '@u29dc/cfg-core';
-import { canvasTheme } from './theme';
 
 const hex = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i;
@@ -80,18 +79,25 @@ export function six(value: string) {
 		return theme.palette.black;
 	}
 	const [, r, g, b] = match;
-	return `#${[r, g, b].map((channel) => Number(channel).toString(16).padStart(2, '0')).join('')}`;
+	return `#${[r, g, b].map((component) => channel(Number(component)).toString(16).padStart(2, '0')).join('')}`;
 }
 
-export function swatch(ctx: CanvasRenderingContext2D | null, value: string, size: number) {
-	if (!ctx) {
-		return;
+export function createSwatch(doc: Document) {
+	const swatchNode = doc.createElement('span');
+	swatchNode.className = 'cfg-swatch-preview';
+	swatchNode.setAttribute('aria-hidden', 'true');
+	const fill = doc.createElement('span');
+	fill.className = 'cfg-swatch-preview__fill';
+	fill.dataset['cfgSwatchFill'] = '';
+	swatchNode.append(fill);
+	return swatchNode;
+}
+
+export function swatch(node: HTMLElement, value: string) {
+	const fill = node.querySelector('[data-cfg-swatch-fill]');
+	if (fill) {
+		(fill as HTMLElement).style.backgroundColor = color(value);
 	}
-	ctx.clearRect(0, 0, size, size);
-	ctx.fillStyle = canvasTheme(ctx.canvas).surface;
-	ctx.fillRect(0, 0, size, size);
-	ctx.fillStyle = color(value);
-	ctx.fillRect(2, 2, size - 4, size - 4);
 }
 
 export function hsvFromRgb(value: Rgba): Hsv {
@@ -158,7 +164,7 @@ export function preview(value: string, allowRemote = false) {
 function normalize(value: string) {
 	const lower = value.toLowerCase();
 	if (lower.length === 4 || lower.length === 5) {
-		return `#${[...lower.slice(1)].map((char) => `${char}${char}`).join('')}`;
+		return `#${Array.from(lower.slice(1), (char) => `${char}${char}`).join('')}`;
 	}
 	return lower;
 }

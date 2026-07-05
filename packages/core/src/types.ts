@@ -54,6 +54,7 @@ export interface Theme {
 		graphMinHistory: number;
 		graphSmoothing: number;
 		profileHistory: number;
+		profileEntryMax: number;
 		profileLabelMax: number;
 		profilerRows: number;
 		profilerReadout: number;
@@ -70,8 +71,6 @@ export interface Theme {
 		bezierTickHeight: number;
 		bezierPreviewDuration: number;
 		bezierPreviewMarkerRadius: number;
-		colorSwatchSize: number;
-		paletteSwatchSize: number;
 		colorPickerWidth: number;
 		colorPickerHeight: number;
 		colorSliderHeight: number;
@@ -354,26 +353,26 @@ export interface Host {
 	separator(label?: string): Control<void>;
 	button(options: ButtonOptions): Control<void>;
 	buttonGroup(options: ButtonGroupOptions): Control<void>;
-	toggle<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ControlOptions): Control<boolean>;
-	number<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number>;
-	slider<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number>;
-	numberSlider<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number>;
-	text<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: TextOptions): Control<string>;
-	multiline<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: MultilineOptions): Control<string>;
-	select<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V>;
-	segmented<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V>;
-	radioGroup<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V>;
-	radioGrid<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V>;
-	color<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ColorOptions): Control<string>;
-	palette<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options: PaletteOptions): Control<string>;
-	point<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector2>;
-	vector2<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector2>;
-	vector3<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector3>;
-	vector4<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector4>;
-	xyPad<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector2>;
-	interval<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<IntervalValue>;
-	cubicBezier<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: BezierOptions): Control<BezierTuple>;
-	image<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ImageOptions): Control<string>;
+	toggle<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ControlOptions): Control<boolean>;
+	number<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number>;
+	slider<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number>;
+	numberSlider<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number>;
+	text<T extends Record<string, unknown>>(target: T, key: keyof T, options?: TextOptions): Control<string>;
+	multiline<T extends Record<string, unknown>>(target: T, key: keyof T, options?: MultilineOptions): Control<string>;
+	select<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V>;
+	segmented<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V>;
+	radioGroup<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V>;
+	radioGrid<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V>;
+	color<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ColorOptions): Control<string>;
+	palette<T extends Record<string, unknown>>(target: T, key: keyof T, options: PaletteOptions): Control<string>;
+	point<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector2>;
+	vector2<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector2>;
+	vector3<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector3>;
+	vector4<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector4>;
+	xyPad<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector2>;
+	interval<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<IntervalValue>;
+	cubicBezier<T extends Record<string, unknown>>(target: T, key: keyof T, options?: BezierOptions): Control<BezierTuple>;
+	image<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ImageOptions): Control<string>;
 	monitor<T>(options: MonitorOptions<T>): Control<T>;
 	logMonitor(options: LogOptions): LogMonitor;
 	graph(options: GraphOptions): TelemetryGraph;
@@ -387,7 +386,7 @@ export interface Host {
 export interface TabOptions {
 	id?: string;
 	label?: string;
-	tabs: readonly string[] | readonly Choice<string>[];
+	tabs: readonly string[] | readonly Choice[];
 	initial?: string;
 }
 
@@ -411,7 +410,7 @@ export interface Cfg {
 	start(): void;
 	stop(): void;
 	exportSettings(): SettingsSnapshot;
-	applySettings(snapshot: SettingsSnapshot | string | unknown): void;
+	applySettings(snapshot: SettingsSnapshot | string): void;
 	resetSettings(): void;
 	copySettings(): Promise<void>;
 	dispose(): void;

@@ -20,7 +20,7 @@ body {
 	min-height: 100%;
 	background: var(--demo-bg);
 	color: var(--demo-text);
-	font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 button,

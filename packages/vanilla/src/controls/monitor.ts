@@ -1,6 +1,8 @@
 import type { LogMonitor, LogOptions, MonitorOptions } from '@u29dc/cfg-core';
 import { clamp, output, theme } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
+import { lineFeed } from '../utils/text';
 
 export class Monitor<T> extends Base<T> {
 	readonly #getValue: () => T;
@@ -82,7 +84,7 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 		if (this.#lines.length >= this.#limit) {
 			this.#lines.shift();
 		}
-		this.#lines.push(String(message));
+		this.#lines.push(message);
 		this.#dirty = true;
 	}
 
@@ -102,6 +104,6 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 	}
 
 	protected render() {
-		this.#readout.textContent = this.#lines.slice(-this.#rows).join('\n');
+		this.#readout.textContent = this.#lines.slice(-this.#rows).join(lineFeed);
 	}
 }

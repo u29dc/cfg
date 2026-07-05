@@ -30,6 +30,7 @@ import type {
 	VectorOptions,
 } from '@u29dc/cfg-core';
 import { el } from '@u29dc/cfg-core';
+
 import { Base, type Managed } from './base';
 import { Button, ButtonGroup, Separator } from './controls/action';
 import { ChoiceControl } from './controls/choice';
@@ -68,7 +69,7 @@ export class Pane implements PaneApi {
 		this.element = el(this.doc, parent ? 'section' : 'aside', parent ? 'cfg-folder' : 'cfg-pane');
 		this.element.dataset['cfgId'] = this.id;
 		this.element.dataset['cfgCollapsed'] = String(this.#collapsed);
-		this.#header = el(this.doc, 'button', parent ? 'cfg-folder__header' : 'cfg-pane__header') as HTMLButtonElement;
+		this.#header = el(this.doc, 'button', parent ? 'cfg-folder__header' : 'cfg-pane__header');
 		this.#header.type = 'button';
 		this.#header.id = `${this.id}-header`;
 		this.#header.setAttribute('aria-controls', `${this.id}-body`);
@@ -117,91 +118,91 @@ export class Pane implements PaneApi {
 		return this.#add(new ButtonGroup(this, options));
 	}
 
-	toggle<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ControlOptions): Control<boolean> {
+	toggle<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ControlOptions): Control<boolean> {
 		return this.#add(new Toggle(this, target, key, options));
 	}
 
-	number<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number> {
+	number<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number> {
 		return this.#add(new Numeric(this, target, key, options, 'number'));
 	}
 
-	slider<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number> {
+	slider<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number> {
 		return this.#add(new Numeric(this, target, key, options, 'slider'));
 	}
 
-	numberSlider<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<number> {
+	numberSlider<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<number> {
 		return this.#add(new Numeric(this, target, key, options, 'number-slider'));
 	}
 
-	text<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: TextOptions): Control<string> {
+	text<T extends Record<string, unknown>>(target: T, key: keyof T, options?: TextOptions): Control<string> {
 		return this.#add(new Textual(this, target, key, options, false));
 	}
 
-	multiline<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: MultilineOptions): Control<string> {
+	multiline<T extends Record<string, unknown>>(target: T, key: keyof T, options?: MultilineOptions): Control<string> {
 		return this.#add(new Textual(this, target, key, options, true));
 	}
 
-	select<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V> {
+	select<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V> {
 		return this.#add(new ChoiceControl(this, target, key, options, 'select'));
 	}
 
-	segmented<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V> {
+	segmented<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V> {
 		return this.#add(new ChoiceControl(this, target, key, options, 'segmented'));
 	}
 
-	radioGroup<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V> {
+	radioGroup<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V> {
 		return this.#add(new ChoiceControl(this, target, key, options, 'radio-group'));
 	}
 
-	radioGrid<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue>(target: T, key: K, options: ChoiceOptions<V>): Control<V> {
+	radioGrid<T extends Record<string, unknown>, V extends ChoiceValue>(target: T, key: keyof T, options: ChoiceOptions<V>): Control<V> {
 		return this.#add(new ChoiceControl(this, target, key, options, 'radio-grid'));
 	}
 
-	color<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ColorOptions): Control<string> {
+	color<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ColorOptions): Control<string> {
 		return this.#add(new ColorControl(this, target, key, options));
 	}
 
-	palette<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options: PaletteOptions): Control<string> {
+	palette<T extends Record<string, unknown>>(target: T, key: keyof T, options: PaletteOptions): Control<string> {
 		return this.#add(new PaletteControl(this, target, key, options));
 	}
 
-	point<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector2> {
+	point<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector2> {
 		return this.vector2(target, key, options);
 	}
 
-	vector2<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options: VectorOptions = {}): Control<Vector2> {
+	vector2<T extends Record<string, unknown>>(target: T, key: keyof T, options: VectorOptions = {}): Control<Vector2> {
 		const control = new VectorControl(this, target, key, options, ['x', 'y']);
 		this.#add(control);
 		return control as unknown as Control<Vector2>;
 	}
 
-	vector3<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options: VectorOptions = {}): Control<Vector3> {
+	vector3<T extends Record<string, unknown>>(target: T, key: keyof T, options: VectorOptions = {}): Control<Vector3> {
 		const control = new VectorControl(this, target, key, options, ['x', 'y', 'z']);
 		this.#add(control);
 		return control as unknown as Control<Vector3>;
 	}
 
-	vector4<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options: VectorOptions = {}): Control<Vector4> {
+	vector4<T extends Record<string, unknown>>(target: T, key: keyof T, options: VectorOptions = {}): Control<Vector4> {
 		const control = new VectorControl(this, target, key, options, ['x', 'y', 'z', 'w']);
 		this.#add(control);
 		return control as unknown as Control<Vector4>;
 	}
 
-	xyPad<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: VectorOptions): Control<Vector2> {
+	xyPad<T extends Record<string, unknown>>(target: T, key: keyof T, options?: VectorOptions): Control<Vector2> {
 		return this.#add(new XyPad(this, target, key, options));
 	}
 
-	interval<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: NumberOptions): Control<IntervalValue> {
+	interval<T extends Record<string, unknown>>(target: T, key: keyof T, options?: NumberOptions): Control<IntervalValue> {
 		const control = new Interval(this, target, key, options);
 		this.#add(control);
 		return control as unknown as Control<IntervalValue>;
 	}
 
-	cubicBezier<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: BezierOptions): Control<[number, number, number, number]> {
+	cubicBezier<T extends Record<string, unknown>>(target: T, key: keyof T, options?: BezierOptions): Control<[number, number, number, number]> {
 		return this.#add(new Bezier(this, target, key, options));
 	}
 
-	image<T extends Record<string, unknown>, K extends keyof T>(target: T, key: K, options?: ImageOptions): Control<string> {
+	image<T extends Record<string, unknown>>(target: T, key: keyof T, options?: ImageOptions): Control<string> {
 		return this.#add(new ImageControl(this, target, key, options));
 	}
 
@@ -278,7 +279,7 @@ export class Pane implements PaneApi {
 			return;
 		}
 		this.#disposed = true;
-		for (const child of [...this.#children]) {
+		for (const child of Array.from(this.#children)) {
 			child.dispose();
 		}
 		this.#children.clear();
@@ -360,21 +361,21 @@ export class Pane implements PaneApi {
 			motion(this.#parent !== undefined),
 		);
 		this.#animation = animation;
-		animation.onfinish = () => {
+		animation.addEventListener('finish', () => {
 			if (this.#animation !== animation) {
 				return;
 			}
 			this.#body.hidden = true;
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
-		};
-		animation.oncancel = () => {
+		});
+		animation.addEventListener('cancel', () => {
 			if (this.#animation !== animation) {
 				return;
 			}
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
-		};
+		});
 	}
 
 	#animateExpand() {
@@ -395,21 +396,21 @@ export class Pane implements PaneApi {
 			motion(this.#parent !== undefined),
 		);
 		this.#animation = animation;
-		animation.onfinish = () => {
+		animation.addEventListener('finish', () => {
 			if (this.#animation !== animation) {
 				return;
 			}
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
 			this.refresh();
-		};
-		animation.oncancel = () => {
+		});
+		animation.addEventListener('cancel', () => {
 			if (this.#animation !== animation) {
 				return;
 			}
 			delete this.#body.dataset['cfgAnimating'];
 			this.#animation = undefined;
-		};
+		});
 	}
 
 	#measureExpandedHeight() {
@@ -462,6 +463,9 @@ class TabGroup extends Base<string> implements TabApi {
 		if (this.#disabled.has(initial)) {
 			throw new Error(`tab control rejected disabled page "${initial}"`);
 		}
+		if (!this.#values.includes(initial)) {
+			throw new Error(`tab control rejected unknown page "${initial}"`);
+		}
 		this.#selected = initial;
 		this.element.classList.add('cfg-tabs');
 
@@ -503,6 +507,10 @@ class TabGroup extends Base<string> implements TabApi {
 		if (this.#disabled.has(value)) {
 			throw new Error(`tab control rejected disabled page "${value}"`);
 		}
+		if (value === this.#selected) {
+			this.render();
+			return;
+		}
 		this.#selected = value;
 		this.render();
 		this.emit('change');
@@ -522,6 +530,15 @@ class TabGroup extends Base<string> implements TabApi {
 		}
 		this.pages.length = 0;
 		super.dispose();
+	}
+
+	override refresh() {
+		this.render();
+		for (const page of this.pages) {
+			if (page.visible()) {
+				page.refresh();
+			}
+		}
 	}
 
 	protected render() {
@@ -563,7 +580,7 @@ function prefersReducedMotion() {
 }
 
 function tabItems(options: TabOptions) {
-	return options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : { ...item, value: String(item.value) }));
+	return options.tabs.map((item) => (typeof item === 'string' ? { label: item, value: item } : { ...item, value: item.value }));
 }
 
 function nextTabButton(buttons: readonly HTMLButtonElement[], index: number, key: string) {
@@ -571,7 +588,7 @@ function nextTabButton(buttons: readonly HTMLButtonElement[], index: number, key
 		return buttons.find((button) => !button.disabled);
 	}
 	if (key === 'End') {
-		return [...buttons].reverse().find((button) => !button.disabled);
+		return buttons.toReversed().find((button) => !button.disabled);
 	}
 	const direction = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : 0;
 	if (direction === 0) {

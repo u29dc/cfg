@@ -40,6 +40,6 @@
 			"cfg/styles.css": ["./packages/vanilla/src/styles/cfg.css"]
 		}
 	},
-	"include": ["packages/**/*", "examples/**/*", "tests/**/*", "demo/**/*", "benchmarks/**/*", "scripts/**/*", "types/**/*", "playwright.config.ts", "vite.config.ts"],
-	"exclude": ["node_modules", "demo-dist", "build", ".tmp", ".archive"]
+	"include": ["packages/**/*", "tests/**/*", "demo/**/*", "scripts/**/*", "playwright.config.ts", "vite.config.ts"],
+	"exclude": ["node_modules", "build", ".tmp", ".archive"]
 }

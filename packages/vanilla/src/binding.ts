@@ -28,23 +28,30 @@ export function bool(value: unknown) {
 }
 
 export function string(value: unknown) {
-	return typeof value === 'string' ? value : String(value ?? '');
+	if (value === null || value === undefined) {
+		return '';
+	}
+	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return String(value);
+	}
+	return '';
 }
 
-export function choice<T extends ChoiceValue>(value: unknown, options: readonly Choice<T>[], allowUnknown = false) {
-	for (const option of options) {
-		if (option.value === value || String(option.value) === String(value)) {
+export function choice<T extends ChoiceValue>(value: unknown, choices: readonly Choice<T>[], allowUnknown = false) {
+	const key = string(value);
+	for (const option of choices) {
+		if (option.value === value || String(option.value) === key) {
 			return option.value;
 		}
 	}
 	if (allowUnknown) {
 		return value as T;
 	}
-	const fallback = options[0]?.value;
+	const fallback = choices[0]?.value;
 	if (fallback === undefined) {
 		throw new Error('choice control requires at least one option');
 	}
-	throw new Error(`choice control rejected unknown value "${String(value)}"; expected one of ${options.map((item) => `"${String(item.value)}"`).join(', ')}`);
+	throw new Error(`choice control rejected unknown value "${key}"; expected one of ${choices.map((item) => `"${String(item.value)}"`).join(', ')}`);
 }
 
 export function options<T extends ChoiceValue>(values: readonly T[] | readonly Choice<T>[]): Choice<T>[] {
@@ -52,7 +59,7 @@ export function options<T extends ChoiceValue>(values: readonly T[] | readonly C
 		if (typeof item === 'object' && item !== null && 'value' in item) {
 			return item;
 		}
-		return { id: String(item), label: String(item), value: item as T };
+		return { id: String(item), label: String(item), value: item };
 	});
 }
 

@@ -7,6 +7,7 @@ export class ProfileEntry {
 	#index = 0;
 	#count = 0;
 	#sum = 0;
+	#frame: number | undefined;
 	latest = 0;
 	max = 0;
 
@@ -19,9 +20,17 @@ export class ProfileEntry {
 		this.latest = 0;
 	}
 
-	add(value: number) {
+	add(value: number, frame: number) {
 		this.latest += Math.max(0, value);
 		this.max = Math.max(this.max, this.latest);
+		if (this.#frame === frame && this.#count > 0) {
+			const index = (this.#index + this.#values.length - 1) % this.#values.length;
+			const previous = this.#values[index] ?? 0;
+			this.#values[index] = this.latest;
+			this.#sum += this.latest - previous;
+			return;
+		}
+		this.#frame = frame;
 		if (this.#count === this.#values.length) {
 			this.#sum -= this.#values[this.#index] ?? 0;
 		} else {
@@ -50,11 +59,13 @@ export class Profile {
 	readonly #entries = new Map<string, ProfileEntry>();
 	readonly #stack: { label: string; start: number }[] = [];
 	readonly #history: number;
+	readonly #entryMax: number;
 	#frame = 0;
 	#total = 0;
 
-	constructor(history: number = theme.metrics.profileHistory) {
+	constructor(history: number = theme.metrics.profileHistory, entryMax: number = theme.metrics.profileEntryMax) {
 		this.#history = historySize(history);
+		this.#entryMax = Math.max(1, Math.floor(Number.isFinite(entryMax) ? entryMax : theme.metrics.profileEntryMax));
 	}
 
 	beginFrame(frame: number) {
@@ -81,7 +92,7 @@ export class Profile {
 			if (item?.label === normalized) {
 				this.#stack.splice(index, 1);
 				const duration = Math.max(0, now - item.start);
-				this.entry(normalized).add(duration);
+				this.entry(normalized).add(duration, this.#frame);
 				this.#total += duration;
 				return duration;
 			}
@@ -119,6 +130,12 @@ export class Profile {
 	entry(label: string) {
 		let entry = this.#entries.get(label);
 		if (!entry) {
+			if (this.#entries.size >= this.#entryMax) {
+				const oldest = this.#entries.keys().next().value;
+				if (oldest !== undefined) {
+					this.#entries.delete(oldest);
+				}
+			}
 			entry = new ProfileEntry(label, this.#history);
 			this.#entries.set(label, entry);
 		}

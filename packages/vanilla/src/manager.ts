@@ -1,5 +1,6 @@
 import type { Cfg, CfgOptions, PaneOptions, SettingsSnapshot, ThemeMode } from '@u29dc/cfg-core';
 import { documentOf, Engine } from '@u29dc/cfg-core';
+
 import type { Managed } from './base';
 import { Pane } from './pane';
 
@@ -9,22 +10,18 @@ export class Manager implements Cfg {
 	readonly doc: Document;
 	readonly engine: Engine;
 	readonly #root: HTMLElement;
-	readonly #ownsRoot: boolean;
 	readonly #panes = new Set<Pane>();
 	#disposed = false;
 
 	constructor(options: CfgOptions = {}) {
 		this.engine = new Engine(options);
 		this.doc = documentOf(options.root);
-		this.#root = options.root ?? this.doc.createElement('div');
-		this.#ownsRoot = options.root === undefined;
+		this.#root = this.doc.createElement('div');
 		this.#root.classList.add('cfg-root');
 		this.#root.dataset['cfgPosition'] = options.position ?? 'top-right';
 		this.#root.dataset['cfgScheduler'] = this.engine.scheduler;
 		this.setTheme(options.theme ?? 'system');
-		if (this.#ownsRoot) {
-			this.doc.body.append(this.#root);
-		}
+		(options.root ?? this.doc.body).append(this.#root);
 	}
 
 	pane(options: PaneOptions) {
@@ -37,12 +34,12 @@ export class Manager implements Cfg {
 
 	getTheme(): ThemeMode {
 		const value = this.#root.dataset['cfgTheme'];
-		return themes.has(value as ThemeMode) ? (value as ThemeMode) : 'system';
+		return value === 'system' || value === 'light' || value === 'dark' ? value : 'system';
 	}
 
 	setTheme(theme: ThemeMode): void {
 		if (!themes.has(theme)) {
-			throw new Error(`cfg theme must be "system", "light", or "dark"; received "${String(theme)}"`);
+			throw new Error(`cfg theme must be "system", "light", or "dark"; received "${theme}"`);
 		}
 		this.#root.dataset['cfgTheme'] = theme;
 		for (const pane of this.#panes) {
@@ -74,7 +71,7 @@ export class Manager implements Cfg {
 		return this.engine.settings.export();
 	}
 
-	applySettings(snapshot: SettingsSnapshot | string | unknown) {
+	applySettings(snapshot: SettingsSnapshot | string) {
 		this.engine.settings.apply(snapshot);
 	}
 
@@ -96,17 +93,12 @@ export class Manager implements Cfg {
 		}
 		this.#disposed = true;
 		this.stop();
-		for (const pane of [...this.#panes]) {
+		for (const pane of Array.from(this.#panes)) {
 			pane.dispose();
 		}
 		this.#panes.clear();
 		this.engine.dispose();
-		if (this.#ownsRoot) {
-			this.#root.remove();
-		} else {
-			this.#root.classList.remove('cfg-root');
-			delete this.#root.dataset['cfgTheme'];
-		}
+		this.#root.remove();
 	}
 
 	add(control: Managed) {

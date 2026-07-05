@@ -1,7 +1,18 @@
-import { createCfg, type SettingsSnapshot, type ThemeMode, theme } from 'cfg';
+import { bezierPresets, createCfg, defaultBezier, type SettingsSnapshot, type ThemeMode, theme } from 'cfg';
+
 import 'cfg/styles.css';
-import { bezierPresets, cfgThemeOptions, defaultBezier, densityOptions, modeOptions, paletteOptions, placementOptions } from '../../examples/options';
 import './demo.css';
+
+const cfgThemeOptions = ['system', 'light', 'dark'] as const;
+const modeOptions = ['calm', 'normal', 'intense'] as const;
+const densityOptions = ['low', 'medium', 'high'] as const;
+const placementOptions = ['nw', 'ne', 'sw', 'se'] as const;
+const paletteOptions = [
+	{ label: 'Blue', value: theme.palette.blue },
+	{ label: 'Gold', value: theme.palette.gold },
+	{ label: 'Rose', value: theme.palette.rose },
+	{ label: 'Green', value: theme.palette.green },
+] as const;
 
 type Mode = (typeof modeOptions)[number];
 type Density = (typeof densityOptions)[number];

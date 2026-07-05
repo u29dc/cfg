@@ -1,5 +1,6 @@
 import type { BezierOptions, BezierTuple, NumberOptions, Vector2, VectorOptions } from '@u29dc/cfg-core';
 import { axis, clamp, el, number, snap, text, theme } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 import { Binding, bezier, interval, vector } from '../binding';
 import { fit, observeCanvas } from '../utils/canvas';
@@ -11,13 +12,13 @@ const bezierSize = theme.metrics.bezierSize;
 const bezierSolverIterations = 6;
 const bezierBinaryIterations = 8;
 
-export class VectorControl<T extends Record<string, unknown>, K extends keyof T> extends Base<unknown> {
+export class VectorControl<T extends Record<string, unknown>> extends Base<unknown> {
 	readonly #binding: Binding<unknown>;
 	readonly #axes: readonly string[];
 	readonly #inputs = new Map<string, HTMLInputElement>();
 	readonly #options: VectorOptions;
 
-	constructor(owner: Owner, target: T, key: K, options: VectorOptions, axes: readonly string[]) {
+	constructor(owner: Owner, target: T, key: keyof T, options: VectorOptions, axes: readonly string[]) {
 		const binding = new Binding(target, key, (value) => vector(value, axes, options));
 		super(owner, `vector${axes.length}`, options, binding.get());
 		this.#binding = binding;
@@ -44,20 +45,20 @@ export class VectorControl<T extends Record<string, unknown>, K extends keyof T>
 	protected render() {
 		const value = this.get() as Record<string, number>;
 		for (const axisName of this.#axes) {
-			const input = this.#inputs.get(axisName);
-			if (input) {
-				input.value = text(value[axisName] ?? 0);
+			const axisInput = this.#inputs.get(axisName);
+			if (axisInput) {
+				axisInput.value = text(value[axisName] ?? 0);
 			}
 		}
 	}
 
 	#axis(axisName: string) {
-		const input = numberInput(this.owner.doc, undefined, this.#axisOptions(axisName), 'cfg-input cfg-input--axis');
-		input.disabled = this.disabled;
-		this.#inputs.set(axisName, input);
-		input.addEventListener('input', () => {
+		const axisInput = numberInput(this.owner.doc, undefined, this.#axisOptions(axisName), 'cfg-input cfg-input--axis');
+		axisInput.disabled = this.disabled;
+		this.#inputs.set(axisName, axisInput);
+		axisInput.addEventListener('input', () => {
 			const current = { ...(this.get() as Record<string, number>) };
-			const value = number(input.value, this.#axisOptions(axisName));
+			const value = number(axisInput.value, this.#axisOptions(axisName));
 			if (this.#options.lock) {
 				for (const locked of this.#axes) {
 					current[locked] = value;
@@ -69,8 +70,8 @@ export class VectorControl<T extends Record<string, unknown>, K extends keyof T>
 			this.render();
 			this.emit('input');
 		});
-		input.addEventListener('change', () => this.emit('change'));
-		return axis(this.owner.doc, axisName.toUpperCase(), input);
+		axisInput.addEventListener('change', () => this.emit('change'));
+		return axis(this.owner.doc, axisName.toUpperCase(), axisInput);
 	}
 
 	#axisOptions(axisName: string): NumberOptions {
@@ -92,7 +93,7 @@ export class VectorControl<T extends Record<string, unknown>, K extends keyof T>
 	}
 }
 
-export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends Base<Vector2> {
+export class XyPad<T extends Record<string, unknown>> extends Base<Vector2> {
 	readonly #binding: Binding<Vector2>;
 	readonly #canvas: HTMLCanvasElement;
 	readonly #ctx: CanvasRenderingContext2D | null;
@@ -100,7 +101,7 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 	readonly #y: HTMLInputElement;
 	readonly #options: VectorOptions;
 
-	constructor(owner: Owner, target: T, key: K, options: VectorOptions = {}) {
+	constructor(owner: Owner, target: T, key: keyof T, options: VectorOptions = {}) {
 		const binding = new Binding(target, key, (value) => vector(value, ['x', 'y'], options) as unknown as Vector2);
 		super(owner, 'xy-pad', options, binding.get());
 		this.#binding = binding;
@@ -202,13 +203,13 @@ export class XyPad<T extends Record<string, unknown>, K extends keyof T> extends
 	}
 }
 
-export class Interval<T extends Record<string, unknown>, K extends keyof T> extends Base<unknown> {
+export class Interval<T extends Record<string, unknown>> extends Base<unknown> {
 	readonly #binding: Binding<unknown>;
 	readonly #min: HTMLInputElement;
 	readonly #max: HTMLInputElement;
 	readonly #options: NumberOptions;
 
-	constructor(owner: Owner, target: T, key: K, options: NumberOptions = {}) {
+	constructor(owner: Owner, target: T, key: keyof T, options: NumberOptions = {}) {
 		const binding = new Binding(target, key, (value) => interval(value, options));
 		super(owner, 'interval', options, binding.get());
 		this.#binding = binding;
@@ -253,7 +254,7 @@ export class Interval<T extends Record<string, unknown>, K extends keyof T> exte
 	}
 }
 
-export class Bezier<T extends Record<string, unknown>, K extends keyof T> extends Base<BezierTuple> {
+export class Bezier<T extends Record<string, unknown>> extends Base<BezierTuple> {
 	readonly #binding: Binding<BezierTuple>;
 	readonly #inputs: HTMLInputElement[] = [];
 	readonly #canvas: HTMLCanvasElement;
@@ -261,7 +262,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 	#preview = 0.5;
 	#previewStart = -Infinity;
 
-	constructor(owner: Owner, target: T, key: K, options: BezierOptions = {}) {
+	constructor(owner: Owner, target: T, key: keyof T, options: BezierOptions = {}) {
 		const binding = new Binding(target, key, bezier);
 		super(owner, 'cubic-bezier', options, binding.get());
 		this.#binding = binding;
@@ -339,7 +340,7 @@ export class Bezier<T extends Record<string, unknown>, K extends keyof T> extend
 	}
 
 	#update() {
-		this.#binding.set(this.#inputs.map((field) => Number(field.value)) as BezierTuple);
+		this.#binding.set(this.#inputs.map((field) => Number(field.value)));
 		this.#restartPreview();
 		this.render();
 		this.emit('input');

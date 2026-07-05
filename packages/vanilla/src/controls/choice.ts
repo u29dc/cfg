@@ -1,17 +1,18 @@
 import type { Choice, ChoiceOptions, ChoiceValue } from '@u29dc/cfg-core';
 import { el } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 import { Binding, choice, encoded, options as normalize } from '../binding';
 
 type Mode = 'select' | 'segmented' | 'radio-group' | 'radio-grid';
 
-export class ChoiceControl<T extends Record<string, unknown>, K extends keyof T, V extends ChoiceValue> extends Base<V> {
+export class ChoiceControl<T extends Record<string, unknown>, V extends ChoiceValue> extends Base<V> {
 	readonly #binding: Binding<V>;
 	readonly #options: Choice<V>[];
 	readonly #buttons: HTMLButtonElement[] = [];
 	readonly #select?: HTMLSelectElement;
 
-	constructor(owner: Owner, target: T, key: K, options: ChoiceOptions<V>, mode: Mode) {
+	constructor(owner: Owner, target: T, key: keyof T, options: ChoiceOptions<V>, mode: Mode) {
 		const items = normalize(options.options);
 		const binding = new Binding(target, key, (value) => choice(value, items, options.allowUnknown));
 		super(owner, mode, options, binding.get());

@@ -1,7 +1,9 @@
 import type { Profiler, ProfilerOptions, ProfilerSnapshot } from '@u29dc/cfg-core';
 import { output, Profile, type ProfileEntry, text, theme } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
-import { fit } from '../utils/canvas';
+import { fit, observeCanvas } from '../utils/canvas';
+import { lineFeed } from '../utils/text';
 import { canvasTheme } from '../utils/theme';
 
 export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler {
@@ -25,6 +27,12 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#readout = output(owner.doc, 'cfg-profiler-readout');
 		this.field.append(this.#canvas, this.#readout);
+		this.cleanup(
+			observeCanvas(this.#canvas, () => {
+				this.#dirty = true;
+				this.render();
+			}),
+		);
 		this.render();
 	}
 
@@ -107,7 +115,7 @@ export class ProfilerControl extends Base<ProfilerSnapshot> implements Profiler 
 			if (!entry) {
 				continue;
 			}
-			result += `${index === 0 ? '' : '\n'}${entry.label} ${text(entry.latest)}ms`;
+			result += (index === 0 ? '' : lineFeed) + entry.label + ' ' + text(entry.latest) + 'ms';
 		}
 		return result || 'no samples';
 	}

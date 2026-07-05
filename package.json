@@ -1,6 +1,6 @@
 {
 	"name": "cfg",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"type": "module",
 	"private": false,
 	"workspaces": [
@@ -27,7 +27,6 @@
 		"AGENTS.md",
 		"DOCS.md",
 		"README.md",
-		"docs",
 		"LICENSE"
 	],
 	"sideEffects": [
@@ -35,29 +34,31 @@
 	],
 	"scripts": {
 		"dev": "vite --host 127.0.0.1",
-		"preview": "vite preview --host 127.0.0.1",
-		"build": "bun run util:types && bun run build:lib && bun run build:demo",
+		"build": "bun run util:types && bun run build:lib",
 		"build:lib": "bun scripts/build.ts",
-		"build:demo": "vite build",
-		"bench": "bun benchmarks/run.ts",
+		"bench": "bun scripts/bench.ts",
 		"test": "bun test",
-		"test:browser": "bun run build:demo && playwright test",
+		"test:browser": "playwright test",
 		"test:package": "bun scripts/smoke.ts",
-		"util:format": "biome format --write .",
-		"util:lint": "biome check . --max-diagnostics 500",
+		"util:format": "oxfmt --write .",
+		"util:lint": "oxlint . --type-aware --deny-warnings",
 		"util:types": "bunx tsgo --noEmit",
 		"util:test": "bun test",
-		"util:check": "STATUS=0; biome format . || STATUS=1; bun run util:lint || STATUS=1; bun run util:types || STATUS=1; bun run util:test || STATUS=1; bun run build || STATUS=1; bun run test:package || STATUS=1; exit $STATUS"
+		"util:check": "STATUS=0; oxfmt --check . || STATUS=1; bun run util:lint || STATUS=1; bun run util:types || STATUS=1; bun run util:test || STATUS=1; bun run build || STATUS=1; bun run test:package || STATUS=1; exit $STATUS"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.2",
 		"@commitlint/cli": "^21.2.0",
 		"@commitlint/config-conventional": "^21.2.0",
 		"@playwright/test": "^1.61.1",
 		"@types/bun": "^1.3.14",
-		"@typescript/native-preview": "^7.0.0-dev.20260704.1",
+		"@typescript/native-preview": "^7.0.0-dev.20260705.1",
 		"husky": "^9.1.7",
+		"lightningcss": "^1.32.0",
 		"lint-staged": "^17.0.8",
+		"oxc-minify": "^0.138.0",
+		"oxfmt": "^0.57.0",
+		"oxlint": "^1.72.0",
+		"oxlint-tsgolint": "^0.24.0",
 		"typescript": "^6.0.3",
 		"vite": "^8.1.3"
 	},

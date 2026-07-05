@@ -146,83 +146,83 @@ export abstract class Base<T> implements Control<T> {
 		return this.owner.buttonGroup(options);
 	}
 
-	toggle<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: ControlOptions) {
+	toggle<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: ControlOptions) {
 		return this.owner.toggle(target, key, options);
 	}
 
-	number<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: NumberOptions) {
+	number<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: NumberOptions) {
 		return this.owner.number(target, key, options);
 	}
 
-	slider<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: NumberOptions) {
+	slider<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: NumberOptions) {
 		return this.owner.slider(target, key, options);
 	}
 
-	numberSlider<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: NumberOptions) {
+	numberSlider<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: NumberOptions) {
 		return this.owner.numberSlider(target, key, options);
 	}
 
-	text<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: TextOptions) {
+	text<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: TextOptions) {
 		return this.owner.text(target, key, options);
 	}
 
-	multiline<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: MultilineOptions) {
+	multiline<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: MultilineOptions) {
 		return this.owner.multiline(target, key, options);
 	}
 
-	select<Target extends Record<string, unknown>, Key extends keyof Target, Value extends ChoiceValue>(target: Target, key: Key, options: ChoiceOptions<Value>) {
+	select<Target extends Record<string, unknown>, Value extends ChoiceValue>(target: Target, key: keyof Target, options: ChoiceOptions<Value>) {
 		return this.owner.select(target, key, options);
 	}
 
-	segmented<Target extends Record<string, unknown>, Key extends keyof Target, Value extends ChoiceValue>(target: Target, key: Key, options: ChoiceOptions<Value>) {
+	segmented<Target extends Record<string, unknown>, Value extends ChoiceValue>(target: Target, key: keyof Target, options: ChoiceOptions<Value>) {
 		return this.owner.segmented(target, key, options);
 	}
 
-	radioGroup<Target extends Record<string, unknown>, Key extends keyof Target, Value extends ChoiceValue>(target: Target, key: Key, options: ChoiceOptions<Value>) {
+	radioGroup<Target extends Record<string, unknown>, Value extends ChoiceValue>(target: Target, key: keyof Target, options: ChoiceOptions<Value>) {
 		return this.owner.radioGroup(target, key, options);
 	}
 
-	radioGrid<Target extends Record<string, unknown>, Key extends keyof Target, Value extends ChoiceValue>(target: Target, key: Key, options: ChoiceOptions<Value>) {
+	radioGrid<Target extends Record<string, unknown>, Value extends ChoiceValue>(target: Target, key: keyof Target, options: ChoiceOptions<Value>) {
 		return this.owner.radioGrid(target, key, options);
 	}
 
-	color<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: ColorOptions) {
+	color<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: ColorOptions) {
 		return this.owner.color(target, key, options);
 	}
 
-	palette<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options: PaletteOptions) {
+	palette<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options: PaletteOptions) {
 		return this.owner.palette(target, key, options);
 	}
 
-	point<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: VectorOptions) {
+	point<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: VectorOptions) {
 		return this.owner.point(target, key, options);
 	}
 
-	vector2<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: VectorOptions) {
+	vector2<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: VectorOptions) {
 		return this.owner.vector2(target, key, options);
 	}
 
-	vector3<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: VectorOptions) {
+	vector3<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: VectorOptions) {
 		return this.owner.vector3(target, key, options);
 	}
 
-	vector4<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: VectorOptions) {
+	vector4<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: VectorOptions) {
 		return this.owner.vector4(target, key, options);
 	}
 
-	xyPad<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: VectorOptions) {
+	xyPad<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: VectorOptions) {
 		return this.owner.xyPad(target, key, options);
 	}
 
-	interval<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: NumberOptions) {
+	interval<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: NumberOptions) {
 		return this.owner.interval(target, key, options);
 	}
 
-	cubicBezier<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: BezierOptions) {
+	cubicBezier<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: BezierOptions) {
 		return this.owner.cubicBezier(target, key, options);
 	}
 
-	image<Target extends Record<string, unknown>, Key extends keyof Target>(target: Target, key: Key, options?: ImageOptions) {
+	image<Target extends Record<string, unknown>>(target: Target, key: keyof Target, options?: ImageOptions) {
 		return this.owner.image(target, key, options);
 	}
 

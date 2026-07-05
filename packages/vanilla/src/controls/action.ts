@@ -1,5 +1,6 @@
 import type { ButtonGroupOptions, ButtonOptions, ControlOptions } from '@u29dc/cfg-core';
 import { el, listen } from '@u29dc/cfg-core';
+
 import { Base, type Owner } from '../base';
 
 export class Separator extends Base<void> {

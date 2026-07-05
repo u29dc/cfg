@@ -12,7 +12,7 @@
 	z-index: 1;
 }
 
-.cfg-number[data-cfg-dragging="true"] .cfg-input {
+.cfg-number[data-cfg-dragging='true'] .cfg-input {
 	cursor: ew-resize;
 	user-select: none;
 }

@@ -217,53 +217,53 @@ Work in phases so quality compounds rather than drifting. Maintain a visible pla
 Recommended phases:
 
 1. Research and baseline:
-   - read this prompt fully;
-   - read `$align`;
-   - read relevant Bun official docs;
-   - inspect Tweakpane, Leva, lil-gui, dat.GUI, Tweakpane Essentials, profiler/color plugins as references;
-   - read `/Users/han/Git/_www_template/src/app/dev/pane.ts`;
-   - read `/Users/han/Git/_www_template/src/app/app.ts`;
-   - read `/Users/han/Git/_www_template/src/app/core/settings.ts`;
-   - read `/Users/han/Git/_www_template/src/app/core/draft.ts`;
-   - read the surrounding `_www_template` controls/theme/settings files needed to understand current Tweakpane behavior;
-   - create a short read-only compatibility checklist before freezing the public API;
-   - decide final package shape.
+    - read this prompt fully;
+    - read `$align`;
+    - read relevant Bun official docs;
+    - inspect Tweakpane, Leva, lil-gui, dat.GUI, Tweakpane Essentials, profiler/color plugins as references;
+    - read `/Users/han/Git/_www_template/src/app/dev/pane.ts`;
+    - read `/Users/han/Git/_www_template/src/app/app.ts`;
+    - read `/Users/han/Git/_www_template/src/app/core/settings.ts`;
+    - read `/Users/han/Git/_www_template/src/app/core/draft.ts`;
+    - read the surrounding `_www_template` controls/theme/settings files needed to understand current Tweakpane behavior;
+    - create a short read-only compatibility checklist before freezing the public API;
+    - decide final package shape.
 
 2. Repository setup:
-   - create `/Users/han/Git/cfg`;
-   - initialize package/tooling;
-   - apply align baseline;
-   - set strict TypeScript, linting, formatting, hooks, CI skeleton.
+    - create `/Users/han/Git/cfg`;
+    - initialize package/tooling;
+    - apply align baseline;
+    - set strict TypeScript, linting, formatting, hooks, CI skeleton.
 
 3. Architecture and public API:
-   - implement manager, pane model, lifecycle, scheduler, package exports, CSS entry;
-   - compile-test the public API examples.
+    - implement manager, pane model, lifecycle, scheduler, package exports, CSS entry;
+    - compile-test the public API examples.
 
 4. Layout and styling:
-   - implement pane shell, multi-pane top-right stacking, folders, tabs, collapse/expand, stable sizing, CSP-safe static CSS.
+    - implement pane shell, multi-pane top-right stacking, folders, tabs, collapse/expand, stable sizing, CSP-safe static CSS.
 
 5. Control components:
-   - implement required input controls, binding semantics, validation, settings import/export/reset.
+    - implement required input controls, binding semantics, validation, settings import/export/reset.
 
 6. Telemetry components:
-   - implement graph primitive, FPS graph, frame graph, profiler, typed ring buffers, external RAF integration.
+    - implement graph primitive, FPS graph, frame graph, profiler, typed ring buffers, external RAF integration.
 
 7. Demo and benchmark:
-   - build the simple Vite demo;
-   - show all controls and multiple panes;
-   - add benchmark/performance mode.
+    - serve the simple Vite demo locally;
+    - show all controls and multiple panes;
+    - add benchmark/performance mode.
 
 8. Automated tests:
-   - unit tests;
-   - type tests;
-   - browser smoke tests;
-   - package install tests.
+    - unit tests;
+    - type tests;
+    - browser smoke tests;
+    - package install tests.
 
 9. Manual browser QA:
-   - launch browser;
-   - test interactions;
-   - capture screenshots;
-   - profile performance.
+    - launch browser;
+    - test interactions;
+    - capture screenshots;
+    - profile performance.
 
 10. GitHub remote setup:
     - create private `u29dc/cfg`;
@@ -402,9 +402,9 @@ The desired final morning state is:
 
 ```json
 {
-  "dependencies": {
-    "cfg": "github:u29dc/cfg#v1.0.0"
-  }
+	"dependencies": {
+		"cfg": "github:u29dc/cfg#v1.0.0"
+	}
 }
 ```
 
@@ -414,9 +414,9 @@ The preferred dependency spec is the pinned GitHub tag form above. If private-re
 
 ```json
 {
-  "dependencies": {
-    "cfg": "git+ssh://git@github.com/u29dc/cfg.git#v1.0.0"
-  }
+	"dependencies": {
+		"cfg": "git+ssh://git@github.com/u29dc/cfg.git#v1.0.0"
+	}
 }
 ```
 
@@ -443,17 +443,16 @@ Keep it simple:
 │   ├── src/main.ts
 │   └── src/demo.css
 ├── tests/
-├── benchmarks/
+├── scripts/
+│   ├── build.ts
+│   ├── bench.ts
+│   └── smoke.ts
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
 ├── README.md
 ├── AGENTS.md
-└── docs/
-    ├── architecture.md
-    ├── framework-adapters.md
-    ├── performance.md
-    └── comparisons.md
+└── DOCS.md
 ```
 
 Do not recreate the Astro template website. The demo should be a simple Vite HTML page that imports the built library or source entry and initializes one complete showcase.
@@ -470,7 +469,7 @@ Suggested package name:
 
 ```json
 {
-  "name": "cfg"
+	"name": "cfg"
 }
 ```
 
@@ -498,16 +497,16 @@ Required exports:
 
 ```json
 {
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./styles.css": "./dist/styles.css"
-  },
-  "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md", "docs"],
-  "sideEffects": ["./dist/styles.css"]
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./styles.css": "./dist/styles.css"
+	},
+	"types": "./dist/index.d.ts",
+	"files": ["dist", "README.md", "docs"],
+	"sideEffects": ["./dist/styles.css"]
 }
 ```
 
@@ -523,17 +522,18 @@ Source maps are optional. Type declarations are not optional.
 
 The library must be ESM-only.
 
-Runtime dependencies should be zero. Any runtime dependency must be justified in `docs/architecture.md` and must survive a bundle/performance review.
+Runtime dependencies should be zero. Any runtime dependency must be justified in `DOCS.md` and must survive a bundle/performance review.
 
-Do not make Vite build only the demo. Separate library and demo builds clearly. For example:
+Do not make the production build produce a demo artifact. `build` is for package `dist/`; the Vite demo is for local development and browser QA.
 
 ```json
 {
-  "scripts": {
-    "build": "bun run build:lib && bun run build:demo",
-    "build:lib": "...",
-    "build:demo": "vite build"
-  }
+	"scripts": {
+		"dev": "vite --host 127.0.0.1",
+		"build": "bun run util:types && bun run build:lib",
+		"build:lib": "bun scripts/build.ts",
+		"test:browser": "playwright test"
+	}
 }
 ```
 
@@ -548,8 +548,8 @@ bun add github:u29dc/cfg#v1.0.0
 and a minimal import check:
 
 ```ts
-import { createCfg } from "cfg";
-import "cfg/styles.css";
+import { createCfg } from 'cfg';
+import 'cfg/styles.css';
 ```
 
 GitHub dependency installation must work even with local husky hooks. If the `prepare` script required by hooks conflicts with GitHub dependency installation, solve that cleanly and document the decision.
@@ -558,19 +558,18 @@ Scripts must use the `util:*` namespace for quality commands:
 
 ```json
 {
-  "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "bun run util:types && bun run build:lib && bun run build:demo",
-    "build:lib": "...",
-    "build:demo": "vite build",
-    "test": "bun test",
-    "prepare": "husky",
-    "util:format": "...",
-    "util:lint": "...",
-    "util:types": "...",
-    "util:test": "bun test",
-    "util:check": "bun run util:format && bun run util:lint && bun run util:types && bun run util:test && bun run build"
-  }
+	"scripts": {
+		"dev": "vite --host 127.0.0.1",
+		"build": "bun run util:types && bun run build:lib",
+		"build:lib": "...",
+		"test": "bun test",
+		"prepare": "husky",
+		"util:format": "...",
+		"util:lint": "...",
+		"util:types": "...",
+		"util:test": "bun test",
+		"util:check": "bun run util:format && bun run util:lint && bun run util:types && bun run util:test && bun run build"
+	}
 }
 ```
 
@@ -602,9 +601,9 @@ The library should be consumable from a pinned GitHub tag or commit:
 
 ```json
 {
-  "dependencies": {
-    "cfg": "github:u29dc/cfg#v1.0.0"
-  }
+	"dependencies": {
+		"cfg": "github:u29dc/cfg#v1.0.0"
+	}
 }
 ```
 
@@ -635,7 +634,7 @@ Default behavior:
 Ship static CSS:
 
 ```ts
-import "cfg/styles.css";
+import 'cfg/styles.css';
 ```
 
 If optional runtime style injection is ever added, it must be opt-in, nonce-aware, documented, and off by default.
@@ -712,7 +711,7 @@ CSS and DOM mutation must be structured:
 - isolate pane data attributes and class prefixes under a clear namespace;
 - keep host-page side effects explicit and reversible.
 
-If a browser API has subtle performance or security tradeoffs, document the decision in `docs/performance.md` or `docs/architecture.md`.
+If a browser API has subtle performance or security tradeoffs, document the decision in `DOCS.md`.
 
 ## Core Architectural Principle
 
@@ -798,7 +797,7 @@ Required principles:
 - core must remain import-safe in SSR/module evaluation contexts;
 - CSS should remain framework-agnostic.
 
-Do not implement React, Next.js, Svelte, or Vue bindings in `v1.0` unless every required core, demo, package, QA, GitHub, and release deliverable is already complete. Instead, include `docs/framework-adapters.md` explaining the intended adapter boundary and showing short pseudo-examples for future React/Svelte usage.
+Do not implement React, Next.js, Svelte, or Vue bindings in `v1.0` unless every required core, demo, package, QA, GitHub, and release deliverable is already complete. Instead, include a compact framework-adapters section in `DOCS.md` explaining the intended adapter boundary and showing short pseudo-examples for future React/Svelte usage.
 
 ## Bun Workspace Readiness
 
@@ -879,52 +878,52 @@ External scheduler mode must create no hidden `requestAnimationFrame` loop. Prov
 Example:
 
 ```ts
-import { createCfg } from "cfg";
+import { createCfg } from 'cfg';
 
 const cfg = createCfg({
-  scheduler: "external",
+	scheduler: 'external',
 });
 
 const controls = cfg.pane({
-  title: "Controls",
+	title: 'Controls',
 });
 
 const perf = cfg.pane({
-  title: "Performance",
+	title: 'Performance',
 });
 
 const fps = perf.fpsGraph({
-  label: "FPS",
+	label: 'FPS',
 });
 
 const frame = perf.frameGraph({
-  label: "Frame",
-  unit: "ms",
+	label: 'Frame',
+	unit: 'ms',
 });
 
 const profiler = perf.profiler({
-  label: "Profiler",
+	label: 'Profiler',
 });
 
 function frameLoop(time: number) {
-  cfg.beginFrame(time);
+	cfg.beginFrame(time);
 
-  profiler.measure("input", () => {
-    input.update(time);
-  });
+	profiler.measure('input', () => {
+		input.update(time);
+	});
 
-  profiler.measure("scroll", () => {
-    scroll.update(time);
-  });
+	profiler.measure('scroll', () => {
+		scroll.update(time);
+	});
 
-  profiler.measure("motion", () => {
-    motion.update(time);
-  });
+	profiler.measure('motion', () => {
+		motion.update(time);
+	});
 
-  cfg.endFrame(time);
-  cfg.renderFrame(time);
+	cfg.endFrame(time);
+	cfg.renderFrame(time);
 
-  requestAnimationFrame(frameLoop);
+	requestAnimationFrame(frameLoop);
 }
 
 requestAnimationFrame(frameLoop);
@@ -934,7 +933,7 @@ Standalone mode may be:
 
 ```ts
 const cfg = createCfg({
-  scheduler: "internal",
+	scheduler: 'internal',
 });
 
 cfg.start();
@@ -952,15 +951,15 @@ This must work:
 const cfg = createCfg();
 
 const controls = cfg.pane({
-  title: "Controls",
+	title: 'Controls',
 });
 
 const performance = cfg.pane({
-  title: "Performance",
+	title: 'Performance',
 });
 
 const scene = cfg.pane({
-  title: "Scene",
+	title: 'Scene',
 });
 ```
 
@@ -1048,106 +1047,95 @@ Example:
 
 ```ts
 const state = {
-  theme: "system",
-  quality: "high",
-  anchor: "center",
-  speed: 1,
-  enabled: true,
-  label: "Template",
-  color: "#111111",
-  point: { x: 0, y: 0 },
-  position: { x: 0, y: 0, z: 0 },
-  range: { min: 16, max: 48 },
-  easing: [0.25, 0.1, 0.25, 1],
-  image: "",
+	theme: 'system',
+	quality: 'high',
+	anchor: 'center',
+	speed: 1,
+	enabled: true,
+	label: 'Template',
+	color: '#111111',
+	point: { x: 0, y: 0 },
+	position: { x: 0, y: 0, z: 0 },
+	range: { min: 16, max: 48 },
+	easing: [0.25, 0.1, 0.25, 1],
+	image: '',
 };
 
 const pane = cfg.pane({
-  title: "Runtime",
+	title: 'Runtime',
 });
 
-pane
-  .folder("Basics")
-  .toggle(state, "enabled", {
-    label: "Enabled",
-  })
-  .number(state, "speed", {
-    label: "Speed",
-    min: 0,
-    max: 4,
-    step: 0.01,
-  })
-  .text(state, "label", {
-    label: "Label",
-  })
-  .select(state, "theme", {
-    label: "Theme",
-    options: ["system", "light", "dark"],
-  })
-  .segmented(state, "quality", {
-    label: "Quality",
-    options: ["low", "medium", "high"],
-  })
-  .radioGrid(state, "anchor", {
-    label: "Anchor",
-    columns: 3,
-    options: [
-      "top-left",
-      "top",
-      "top-right",
-      "left",
-      "center",
-      "right",
-      "bottom-left",
-      "bottom",
-      "bottom-right",
-    ],
-  });
+pane.folder('Basics')
+	.toggle(state, 'enabled', {
+		label: 'Enabled',
+	})
+	.number(state, 'speed', {
+		label: 'Speed',
+		min: 0,
+		max: 4,
+		step: 0.01,
+	})
+	.text(state, 'label', {
+		label: 'Label',
+	})
+	.select(state, 'theme', {
+		label: 'Theme',
+		options: ['system', 'light', 'dark'],
+	})
+	.segmented(state, 'quality', {
+		label: 'Quality',
+		options: ['low', 'medium', 'high'],
+	})
+	.radioGrid(state, 'anchor', {
+		label: 'Anchor',
+		columns: 3,
+		options: ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'],
+	});
 
-pane.folder("Color").color(state, "color", {
-  label: "Accent",
-  format: "hex",
+pane.folder('Color').color(state, 'color', {
+	label: 'Accent',
+	format: 'hex',
 });
 
-pane.folder("Color").palette(state, "color", {
-  label: "Palette",
-  colors: ["#111111", "#ffffff", "#ff3300", "#0066ff"],
+pane.folder('Color').palette(state, 'color', {
+	label: 'Palette',
+	colors: ['#111111', '#ffffff', '#ff3300', '#0066ff'],
 });
 
-pane.folder("Vectors").point(state, "point", {
-  label: "Offset",
+pane.folder('Vectors').point(state, 'point', {
+	label: 'Offset',
 });
 
-pane.folder("Vectors").vector3(state, "position", {
-  label: "Position",
+pane.folder('Vectors').vector3(state, 'position', {
+	label: 'Position',
 });
 
-pane.folder("Range").interval(state, "range", {
-  label: "Frame Budget",
-  min: 0,
-  max: 100,
-  step: 1,
+pane.folder('Range').interval(state, 'range', {
+	label: 'Frame Budget',
+	min: 0,
+	max: 100,
+	step: 1,
 });
 
-pane.folder("Motion").cubicBezier(state, "easing", {
-  label: "Easing",
+pane.folder('Motion').cubicBezier(state, 'easing', {
+	label: 'Easing',
 });
 
-pane.folder("Assets").image(state, "image", {
-  label: "Preview Image",
+pane.folder('Assets').image(state, 'image', {
+	label: 'Preview Image',
 });
 ```
 
 API methods may return control handles:
 
 ```ts
-const speed = pane.number(state, "speed", {
-  min: 0,
-  max: 4,
+const speed = pane.number(state, 'speed', {
+	min: 0,
+	max: 4,
 });
 
-speed.on("change", (value) => {
-  console.log(value);
+speed.on('change', (value) => {
+	console.log(value);
 });
 
 speed.set(2);
@@ -1176,58 +1164,58 @@ Export at least:
 The following must be a compile-tested example in the repo:
 
 ```ts
-import { createCfg, type Cfg, type Pane } from "cfg";
-import "cfg/styles.css";
+import { createCfg, type Cfg, type Pane } from 'cfg';
+import 'cfg/styles.css';
 
 const state = {
-  enabled: true,
-  speed: 1,
-  mode: "normal",
-  label: "Template",
-  color: "#111111ff",
-  point: { x: 0, y: 0 },
-  position: { x: 0, y: 0, z: 0 },
-  range: { min: 16, max: 48 },
-  easing: [0.25, 0.1, 0.25, 1],
-  image: "",
+	enabled: true,
+	speed: 1,
+	mode: 'normal',
+	label: 'Template',
+	color: '#111111ff',
+	point: { x: 0, y: 0 },
+	position: { x: 0, y: 0, z: 0 },
+	range: { min: 16, max: 48 },
+	easing: [0.25, 0.1, 0.25, 1],
+	image: '',
 };
 
-const cfg: Cfg = createCfg({ scheduler: "external" });
-const controls: Pane = cfg.pane({ title: "Controls" });
-const performance = cfg.pane({ title: "Performance" });
+const cfg: Cfg = createCfg({ scheduler: 'external' });
+const controls: Pane = cfg.pane({ title: 'Controls' });
+const performance = cfg.pane({ title: 'Performance' });
 
-controls.folder("Basics").toggle(state, "enabled");
-controls.number(state, "speed", { min: 0, max: 4, step: 0.01 });
-controls.segmented(state, "mode", { options: ["calm", "normal", "intense"] });
-controls.text(state, "label");
-controls.color(state, "color", { format: "rgba" });
-controls.point(state, "point");
-controls.vector3(state, "position");
-controls.interval(state, "range", { min: 0, max: 100, step: 1 });
-controls.cubicBezier(state, "easing");
-controls.image(state, "image");
+controls.folder('Basics').toggle(state, 'enabled');
+controls.number(state, 'speed', { min: 0, max: 4, step: 0.01 });
+controls.segmented(state, 'mode', { options: ['calm', 'normal', 'intense'] });
+controls.text(state, 'label');
+controls.color(state, 'color', { format: 'rgba' });
+controls.point(state, 'point');
+controls.vector3(state, 'position');
+controls.interval(state, 'range', { min: 0, max: 100, step: 1 });
+controls.cubicBezier(state, 'easing');
+controls.image(state, 'image');
 controls.buttonGroup({
-  label: "Actions",
-  buttons: [
-    { label: "Copy", action: () => cfg.copySettings() },
-    { label: "Reset", action: () => cfg.resetSettings() },
-  ],
+	label: 'Actions',
+	buttons: [
+		{ label: 'Copy', action: () => cfg.copySettings() },
+		{ label: 'Reset', action: () => cfg.resetSettings() },
+	],
 });
 
-const fps = performance.fpsGraph({ label: "FPS" });
-const frame = performance.frameGraph({ label: "Frame", unit: "ms" });
-const log = performance.logMonitor({ label: "Events", rows: 4, bufferSize: 20 });
-const profiler = performance.profiler({ label: "Profiler" });
+const fps = performance.fpsGraph({ label: 'FPS' });
+const frame = performance.frameGraph({ label: 'Frame', unit: 'ms' });
+const log = performance.logMonitor({ label: 'Events', rows: 4, bufferSize: 20 });
+const profiler = performance.profiler({ label: 'Profiler' });
 
 function loop(time: number) {
-  cfg.beginFrame(time);
-  profiler.measure("work", () => {
-    Math.sqrt(time);
-  });
-  log.push(`frame ${Math.round(time)}`);
-  cfg.endFrame(time);
-  cfg.renderFrame(time);
-  requestAnimationFrame(loop);
+	cfg.beginFrame(time);
+	profiler.measure('work', () => {
+		Math.sqrt(time);
+	});
+	log.push(`frame ${Math.round(time)}`);
+	cfg.endFrame(time);
+	cfg.renderFrame(time);
+	requestAnimationFrame(loop);
 }
 
 requestAnimationFrame(loop);
@@ -1495,14 +1483,14 @@ Profiler:
 Example:
 
 ```ts
-const profiler = pane.profiler({ label: "Modules" });
+const profiler = pane.profiler({ label: 'Modules' });
 
-profiler.begin("scroll");
+profiler.begin('scroll');
 scroll.update();
-profiler.end("scroll");
+profiler.end('scroll');
 
-profiler.measure("motion", () => {
-  motion.update();
+profiler.measure('motion', () => {
+	motion.update();
 });
 ```
 
@@ -1574,40 +1562,40 @@ The demo should:
 Suggested demo panes:
 
 1. `Controls`
-   - booleans;
-   - numbers;
-   - sliders;
-   - strings;
-   - multiline;
-   - select/list;
-   - segmented/radio groups;
-   - radio grids;
-   - colors;
-   - palette/swatch groups;
-   - point/vector;
-   - explicit vector2, vector3, and vector4 examples;
-   - xy pad/joystick for vector2;
-   - interval/range;
-   - cubic Bezier/easing curve;
-   - image/asset input;
-   - buttons;
-   - button groups;
-   - separators;
-   - tabs.
+    - booleans;
+    - numbers;
+    - sliders;
+    - strings;
+    - multiline;
+    - select/list;
+    - segmented/radio groups;
+    - radio grids;
+    - colors;
+    - palette/swatch groups;
+    - point/vector;
+    - explicit vector2, vector3, and vector4 examples;
+    - xy pad/joystick for vector2;
+    - interval/range;
+    - cubic Bezier/easing curve;
+    - image/asset input;
+    - buttons;
+    - button groups;
+    - separators;
+    - tabs.
 
 2. `Performance`
-   - FPS graph;
-   - frame-time graph;
-   - multi-series/waveform graph;
-   - profiler;
-   - readonly monitors;
-   - buffered log monitor;
-   - fake workload controls.
+    - FPS graph;
+    - frame-time graph;
+    - multi-series/waveform graph;
+    - profiler;
+    - readonly monitors;
+    - buffered log monitor;
+    - fake workload controls.
 
 3. `Theme`
-   - color controls;
-   - compact palette/swatch controls;
-   - basic future-facing color API examples.
+    - color controls;
+    - compact palette/swatch controls;
+    - basic future-facing color API examples.
 
 This is one demo page, not an app.
 
@@ -1676,7 +1664,7 @@ If any target is missed, report it as a defect or explicit residual risk, not as
 
 Automated tests are not enough.
 
-After implementation, the agent must run the full production build, launch the demo in a real browser, and manually verify the product end-to-end. Use Playwright, Chrome DevTools Protocol, a browser automation MCP, or equivalent real-browser tooling. Do not rely only on jsdom or unit tests.
+After implementation, the agent must run the full package production build, launch the demo dev server in a real browser, and manually verify the product end-to-end. Use Playwright, Chrome DevTools Protocol, a browser automation MCP, or equivalent real-browser tooling. Do not rely only on jsdom or unit tests.
 
 Also add an executable browser smoke test, preferably Playwright, that verifies:
 
@@ -1700,19 +1688,19 @@ Also add an executable browser smoke test, preferably Playwright, that verifies:
 - external RAF telemetry changes over time;
 - disposal removes demo-created pane DOM.
 
-Save browser screenshots and QA artifacts under a deterministic folder such as:
+Save browser screenshots and QA artifacts under a deterministic `.tmp` folder such as:
 
 ```text
-artifacts/browser-qa/
+.tmp/tests/browser/
 ```
 
-Treat browser QA artifacts as local evidence by default. Add `artifacts/` to `.gitignore` unless a small curated artifact is intentionally committed for documentation.
+Treat browser QA artifacts as local evidence by default. Do not create root `artifacts/`, `test-results/`, or `playwright-report/` folders.
 
 Required browser QA flow:
 
 1. Install dependencies.
 2. Run formatting, linting, typechecking, unit tests, and build.
-3. Start the demo/preview server.
+3. Start the Vite demo dev server.
 4. Open the demo page in a real browser.
 5. Verify there are no browser console errors.
 6. Verify all panes render with the correct default top-right horizontal stacking.
@@ -1907,17 +1895,17 @@ Read `https://clawpatch.ai/` and `https://github.com/openclaw/clawpatch`, then r
 
 Clawpatch is an automated review tool that dispatches many subagents in parallel to perform comprehensive codebase reviews. I want you to:
 
-* Read the full documentation and understand how the tool works.
-* Explore the available commands and parameters.
-* Run a full read-only review on my codebase.
-    * Use the highest reasoning level and highest available settings the tool allows.
-    * Configure the agents to use `5.5 xhigh` if supported.
-    * Do not run `apply` mode or apply any fixes.
-    * It is fine if the tool creates a `.clawpatch` folder with JSON or other output files.
-    * Run only the phases needed to find, verify, and validate findings.
-* After Clawpatch finishes, read all reports yourself as a sanity check to confirm the findings are valid and important.
-* Then launch a separate subagent to get a second fresh opinion on all findings.
-* Report back only with validated, verified, important findings.
+- Read the full documentation and understand how the tool works.
+- Explore the available commands and parameters.
+- Run a full read-only review on my codebase.
+    - Use the highest reasoning level and highest available settings the tool allows.
+    - Configure the agents to use `5.5 xhigh` if supported.
+    - Do not run `apply` mode or apply any fixes.
+    - It is fine if the tool creates a `.clawpatch` folder with JSON or other output files.
+    - Run only the phases needed to find, verify, and validate findings.
+- After Clawpatch finishes, read all reports yourself as a sanity check to confirm the findings are valid and important.
+- Then launch a separate subagent to get a second fresh opinion on all findings.
+- Report back only with validated, verified, important findings.
 ```
 
 Treat `.clawpatch/` as local review evidence and gitignore it by default unless a small curated summary is intentionally committed.
@@ -1968,7 +1956,7 @@ Visual direction:
 Default typeface:
 
 ```css
-font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 ```
 
 If bundling Geist Mono is too heavy for the library itself, document the expected font loading approach and keep fallback sane. Do not block the library on font loading.
@@ -2025,29 +2013,29 @@ Although this is a developer/debug tool, it should still be solid:
 Possible core types:
 
 ```ts
-type CfgScheduler = "external" | "internal";
+type CfgScheduler = 'external' | 'internal';
 
 interface CfgOptions {
-  scheduler?: CfgScheduler;
-  root?: HTMLElement;
-  position?: "top-right";
+	scheduler?: CfgScheduler;
+	root?: HTMLElement;
+	position?: 'top-right';
 }
 
 interface PaneOptions {
-  id?: string;
-  title: string;
-  width?: number;
-  collapsed?: boolean;
+	id?: string;
+	title: string;
+	width?: number;
+	collapsed?: boolean;
 }
 
 interface FrameContext {
-  time: number;
-  delta: number;
-  frame: number;
+	time: number;
+	delta: number;
+	frame: number;
 }
 
 interface Disposable {
-  dispose(): void;
+	dispose(): void;
 }
 ```
 
@@ -2067,10 +2055,10 @@ Possible control handle:
 
 ```ts
 interface Control<T> extends Disposable {
-  get(): T;
-  set(value: T): void;
-  refresh(): void;
-  on(event: "change", handler: (value: T) => void): () => void;
+	get(): T;
+	set(value: T): void;
+	refresh(): void;
+	on(event: 'change', handler: (value: T) => void): () => void;
 }
 ```
 
@@ -2103,10 +2091,7 @@ Use browser-like tests only where necessary. Do not make the test setup heavier 
 Create:
 
 - `README.md`;
-- `docs/architecture.md`;
-- `docs/framework-adapters.md`;
-- `docs/performance.md`;
-- `docs/comparisons.md`;
+- `DOCS.md`.
 
 `README.md` should include:
 
@@ -2121,7 +2106,7 @@ Create:
 - demo instructions;
 - check/build/test instructions.
 
-`architecture.md` should explain:
+`DOCS.md` should include compact architecture notes explaining:
 
 - manager;
 - panes;
@@ -2132,7 +2117,7 @@ Create:
 - disposal;
 - multi-pane layout.
 
-`framework-adapters.md` should explain:
+`DOCS.md` should include compact framework adapter notes explaining:
 
 - why `v1.0` is vanilla-first;
 - which core APIs future adapters should wrap;
@@ -2141,7 +2126,7 @@ Create:
 - how adapters should share the core telemetry/profiler engine;
 - how SSR-safe imports should work.
 
-`performance.md` should explain:
+`DOCS.md` should include compact performance notes explaining:
 
 - no full refresh;
 - no hot-path allocation;
@@ -2151,7 +2136,7 @@ Create:
 - visibility gating;
 - frame budget goals.
 
-`comparisons.md` should compare:
+`DOCS.md` should include compact ecosystem notes comparing:
 
 - Tweakpane;
 - Leva;
@@ -2161,6 +2146,8 @@ Create:
 - Tweakpane profiler plugins.
 
 Be factual and fair. Do not dunk on other libraries. Explain why `cfg` has a different target.
+
+Do not recreate a root `docs/`, `benchmarks/`, or `examples/` folder. Keep durable docs in `DOCS.md`, benchmark execution in `scripts/bench.ts`, benchmark output under ignored `.tmp/bench/`, package smoke tarballs under `.tmp/release/`, test and browser QA artifacts under `.tmp/tests/`, and public usage examples in `DOCS.md` plus the compile-tested demo.
 
 ## Definition Of Done For v1.0
 
@@ -2243,9 +2230,9 @@ The intended morning outcome is that Han can open `_www_template`, add:
 
 ```json
 {
-  "dependencies": {
-    "cfg": "github:u29dc/cfg#v1.0.0"
-  }
+	"dependencies": {
+		"cfg": "github:u29dc/cfg#v1.0.0"
+	}
 }
 ```
 

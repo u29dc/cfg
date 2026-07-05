@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { chromium } from '@playwright/test';
+
+import { chromium, type Browser } from '@playwright/test';
 
 const port = 4187;
 const frames = 180;
 const warmup = 30;
-const artifactDir = 'artifacts/performance';
+const artifactDir = '.tmp/bench';
 
 const server = Bun.serve({
 	port,
@@ -27,17 +28,21 @@ const server = Bun.serve({
 
 try {
 	await mkdir(artifactDir, { recursive: true });
-	const browser = await chromium.launch();
-	const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-	await page.goto(`http://127.0.0.1:${port}/`);
-	const result = await page.evaluate(({ frames: totalFrames, warmup: warmupFrames }) => window.__runCfgBenchmark({ frames: totalFrames, warmup: warmupFrames }), { frames, warmup });
-	await browser.close();
-	const stamp = new Date().toISOString().replaceAll(':', '-');
-	const path = `${artifactDir}/benchmark-${stamp}.json`;
-	await writeFile(path, `${JSON.stringify(result, null, 2)}\n`);
-	process.stdout.write(`${JSON.stringify({ artifact: path, result }, null, 2)}\n`);
+	let browser: Browser | undefined;
+	try {
+		browser = await chromium.launch();
+		const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+		await page.goto(`http://127.0.0.1:${port}/`);
+		const result = await page.evaluate(({ frames: totalFrames, warmup: warmupFrames }) => window.__runCfgBenchmark({ frames: totalFrames, warmup: warmupFrames }), { frames, warmup });
+		const stamp = new Date().toISOString().replaceAll(':', '-');
+		const path = `${artifactDir}/benchmark-${stamp}.json`;
+		await writeFile(path, `${JSON.stringify(result, null, 2)}\n`);
+		process.stdout.write(`${JSON.stringify({ artifact: path, result }, null, 2)}\n`);
+	} finally {
+		await browser?.close();
+	}
 } finally {
-	server.stop(true);
+	await server.stop(true);
 }
 
 function html() {
@@ -97,11 +102,14 @@ window.__runCfgBenchmark = async ({ frames, warmup }) => {
 
 async function measure(name, setup, frames, warmup) {
   const context = setup();
-  await nextFrame();
-  await runFrames(warmup, context.step);
-  const samples = await runFrames(frames, context.step);
-  context.dispose?.();
-  return { name, ...stats(samples) };
+  try {
+    await nextFrame();
+    await runFrames(warmup, context.step);
+    const samples = await runFrames(frames, context.step);
+    return { name, ...stats(samples) };
+  } finally {
+    context.dispose?.();
+  }
 }
 
 function setupBasic(count, telemetry) {
@@ -173,8 +181,9 @@ function frameContext(root, cfg, work = () => {}) {
 
 function runFrames(count, step) {
   const samples = [];
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tick = (time) => {
+      try {
       const before = performance.now();
       step(time);
       samples.push(performance.now() - before);
@@ -183,6 +192,9 @@ function runFrames(count, step) {
         return;
       }
       requestAnimationFrame(tick);
+      } catch (error) {
+        reject(error);
+      }
     };
     requestAnimationFrame(tick);
   });

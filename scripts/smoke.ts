@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const tmp = join(root, '.tmp', 'package-smoke');
+const tmp = join(root, '.tmp', 'release');
 const packDir = join(tmp, 'pack');
 const consumer = join(tmp, 'consumer');
 
@@ -47,6 +47,7 @@ writeFileSync(
 	join(consumer, 'index.ts'),
 	[
 		"import { createCfg, type Cfg, type Control, type ThemeMode, theme } from 'cfg';",
+		"import 'cfg/styles.css';",
 		"import stylesheet from 'cfg/styles.css';",
 		'',
 		"const mode: ThemeMode = 'system';",

@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -14,15 +15,7 @@ export default defineConfig({
 			{ find: '@u29dc/cfg-vanilla', replacement: resolve(import.meta.dirname, 'packages/vanilla/src/index.ts') },
 		],
 	},
-	build: {
-		outDir: '../demo-dist',
-		emptyOutDir: true,
-		target: 'esnext',
-	},
 	server: {
-		host: '127.0.0.1',
-	},
-	preview: {
 		host: '127.0.0.1',
 	},
 });

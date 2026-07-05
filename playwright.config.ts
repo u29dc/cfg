@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
 	testDir: 'tests/browser',
 	testMatch: '**/*.e2e.ts',
+	outputDir: '.tmp/tests/playwright',
 	timeout: 30_000,
 	expect: {
 		timeout: 5_000,
@@ -13,9 +14,9 @@ export default defineConfig({
 		screenshot: 'only-on-failure',
 	},
 	webServer: {
-		command: 'bun run preview -- --port 4173',
+		command: 'bunx vite --host 127.0.0.1 --port 4173 --strictPort',
 		url: 'http://127.0.0.1:4173',
-		reuseExistingServer: true,
+		reuseExistingServer: !process.env['CI'],
 		timeout: 30_000,
 	},
 });

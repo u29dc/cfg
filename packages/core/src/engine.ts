@@ -62,6 +62,9 @@ export class Engine {
 			this.#sample('fps', theme.metrics.millisPerSecond / sample.delta);
 		}
 		for (const profiler of this.#profilers) {
+			if (this.#disposed) {
+				break;
+			}
 			profiler.beginFrame(sample.frame);
 		}
 		return sample;
@@ -70,8 +73,11 @@ export class Engine {
 	endFrame() {
 		this.assert();
 		const sample = this.frame.end(this.clock());
-		this.#sample('frame', sample.delta || sample.duration);
+		this.#sample('frame', sample.duration);
 		for (const profiler of this.#profilers) {
+			if (this.#disposed) {
+				break;
+			}
 			profiler.endFrame(sample.duration);
 		}
 		return sample;
@@ -101,15 +107,33 @@ export class Engine {
 				this.#rafId = 0;
 				return;
 			}
-			this.#rafId = 0;
-			this.beginFrame(time);
-			this.endFrame();
-			this.renderFrame(time);
-			if (this.#running && !this.#disposed) {
-				this.#rafId = this.#raf.request(tick);
+			try {
+				this.#rafId = 0;
+				this.beginFrame(time);
+				if (!this.#active()) {
+					return;
+				}
+				this.endFrame();
+				if (!this.#active()) {
+					return;
+				}
+				this.renderFrame(time);
+				if (this.#active()) {
+					this.#rafId = this.#raf.request(tick);
+				}
+			} catch (error) {
+				this.#running = false;
+				this.#rafId = 0;
+				throw error;
 			}
 		};
-		this.#rafId = this.#raf.request(tick);
+		try {
+			this.#rafId = this.#raf.request(tick);
+		} catch (error) {
+			this.#running = false;
+			this.#rafId = 0;
+			throw error;
+		}
 	}
 
 	stop() {
@@ -126,6 +150,9 @@ export class Engine {
 		}
 		this.#disposed = true;
 		this.stop();
+		for (const item of this.#items) {
+			this.settings.remove(item);
+		}
 		this.#items.clear();
 		this.#renderables.clear();
 		this.#samplers.clear();
@@ -140,8 +167,15 @@ export class Engine {
 
 	#sample(kind: 'fps' | 'frame', value: number) {
 		for (const sampler of this.#samplers) {
+			if (this.#disposed) {
+				break;
+			}
 			sampler.sample(kind, value);
 		}
+	}
+
+	#active() {
+		return this.#running && !this.#disposed;
 	}
 }
 

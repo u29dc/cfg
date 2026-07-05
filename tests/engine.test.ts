@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { RuntimeItem } from '@u29dc/cfg-core';
-import { Engine, Profile, Ring, Settings } from '@u29dc/cfg-core';
+import { Engine, Ids, Profile, Ring, Settings } from '@u29dc/cfg-core';
+
 import { choice, options } from '../packages/vanilla/src/binding';
 
 describe('Engine', () => {
@@ -47,7 +49,7 @@ describe('Engine', () => {
 		expect(profilerDurations).toEqual([4, 7]);
 		expect(sampled[0]).toEqual(['frame', 4]);
 		expect(sampled[1]?.[0]).toBe('fps');
-		expect(sampled[2]).toEqual(['frame', 16]);
+		expect(sampled[2]).toEqual(['frame', 7]);
 	});
 
 	test('internal mode uses one RAF loop and stops cleanly', () => {
@@ -75,8 +77,7 @@ describe('Engine', () => {
 		const callbacks: ((time: number) => void)[] = [];
 		const cancelled: number[] = [];
 		let nextId = 0;
-		let engine!: Engine;
-		engine = new Engine({
+		const engine = new Engine({
 			scheduler: 'internal',
 			clock: () => 10,
 			raf: (next) => {
@@ -99,8 +100,7 @@ describe('Engine', () => {
 	test('internal mode does not reschedule when disposed during a frame', () => {
 		const callbacks: ((time: number) => void)[] = [];
 		let nextId = 0;
-		let engine!: Engine;
-		engine = new Engine({
+		const engine = new Engine({
 			scheduler: 'internal',
 			clock: () => 10,
 			raf: (next) => {
@@ -116,6 +116,63 @@ describe('Engine', () => {
 
 		expect(callbacks).toHaveLength(0);
 		expect(() => engine.add(runtimeItem({ id: 'after-dispose' }))).toThrow('cfg engine has been disposed');
+	});
+
+	test('internal mode stops cleanly when a sampler disposes during a frame', () => {
+		const callbacks: ((time: number) => void)[] = [];
+		let nextId = 0;
+		const engine = new Engine({
+			scheduler: 'internal',
+			clock: () => 10,
+			raf: (next) => {
+				callbacks.push(next);
+				nextId += 1;
+				return nextId;
+			},
+		});
+		engine.add(runtimeItem({ sample: () => engine.dispose() }));
+
+		engine.start();
+		callbacks.shift()?.(16);
+
+		expect(callbacks).toHaveLength(0);
+	});
+
+	test('internal mode clears running state after callback failures', () => {
+		const callbacks: ((time: number) => void)[] = [];
+		let failSchedule = false;
+		let nextId = 0;
+		const engine = new Engine({
+			scheduler: 'internal',
+			clock: () => 10,
+			raf: (next) => {
+				if (failSchedule) {
+					throw new Error('schedule failed');
+				}
+				callbacks.push(next);
+				nextId += 1;
+				return nextId;
+			},
+		});
+		engine.add(runtimeItem({ renderFrame: () => undefined }));
+
+		engine.start();
+		failSchedule = true;
+		expect(() => callbacks.shift()?.(16)).toThrow('schedule failed');
+		failSchedule = false;
+		engine.start();
+
+		expect(callbacks).toHaveLength(1);
+	});
+
+	test('dispose unregisters settings items', () => {
+		const engine = new Engine();
+		engine.add(runtimeItem({ id: 'speed', get: () => 2 }));
+
+		expect(engine.settings.export().values['speed']).toBe(2);
+		engine.dispose();
+
+		expect(Object.hasOwn(engine.settings.export().values, 'speed')).toBe(false);
 	});
 });
 
@@ -177,6 +234,27 @@ describe('Settings', () => {
 		expect(() => settings.apply({ version: 1, generatedAt: 'test', values: { speed: 4, mode: 'broken' } })).toThrow('choice control rejected unknown value');
 		expect(speed).toBe(1);
 		expect(mode).toBe('normal');
+	});
+
+	test('exports special ids without prototype pollution', () => {
+		const settings = new Settings();
+		settings.add(runtimeItem({ id: '__proto__', get: () => 'safe' }));
+
+		const snapshot = settings.export();
+
+		expect(Object.getPrototypeOf(snapshot.values)).toBe(null);
+		expect(Object.hasOwn(snapshot.values, '__proto__')).toBe(true);
+		expect(snapshot.values['__proto__']).toBe('safe');
+	});
+});
+
+describe('Ids', () => {
+	test('reserves requested ids and generated ids in one namespace', () => {
+		const ids = new Ids();
+
+		expect(ids.create('pane', 'pane-1')).toBe('pane-1');
+		expect(ids.create('pane')).toBe('pane-2');
+		expect(() => ids.create('pane', 'pane-2')).toThrow('duplicate cfg id');
 	});
 });
 
@@ -246,6 +324,32 @@ describe('Profile', () => {
 			expect(entry?.average).toBeGreaterThan(0);
 			expect(Number.isFinite(entry?.average)).toBe(true);
 		}
+	});
+
+	test('aggregates repeated labels once per frame', () => {
+		const profile = new Profile(4);
+
+		profile.beginFrame(1);
+		profile.begin('draw', 0);
+		profile.end('draw', 1);
+		profile.begin('draw', 1);
+		profile.end('draw', 3);
+
+		const entry = profile.snapshot().entries[0];
+		expect(entry?.latest).toBe(3);
+		expect(entry?.average).toBe(3);
+	});
+
+	test('bounds retained labels', () => {
+		const profile = new Profile(4, 2);
+
+		for (const label of ['a', 'b', 'c']) {
+			profile.beginFrame(1);
+			profile.begin(label, 0);
+			profile.end(label, 1);
+		}
+
+		expect(profile.snapshot().entries.map((entry) => entry.label)).toEqual(['b', 'c']);
 	});
 });
 
