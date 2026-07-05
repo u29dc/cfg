@@ -152,18 +152,18 @@ Latest local run:
 
 | Scenario | Average | p95 | Max |
 | --- | ---: | ---: | ---: |
-| host baseline | `0.001ms` | not recorded | not recorded |
-| one pane, no telemetry | `0.007ms` | not recorded | not recorded |
-| three panes, no telemetry | `0.005ms` | not recorded | not recorded |
-| FPS graph active | `0.076ms` | `0.2ms` | `0.2ms` |
-| profiler active | `0.05ms` | `0.1ms` | `0.2ms` |
-| many controls | `0.007ms` | not recorded | not recorded |
-| collapsed pane | `0.009ms` | not recorded | not recorded |
+| host baseline | `0.002ms` | `0ms` | `0.1ms` |
+| one pane, no telemetry | `0.018ms` | `0.1ms` | `0.2ms` |
+| three panes, no telemetry | `0.017ms` | `0.1ms` | `0.2ms` |
+| FPS graph active | `0.371ms` | `0.6ms` | `0.7ms` |
+| profiler active | `0.223ms` | `0.6ms` | `0.7ms` |
+| many controls | `0.012ms` | `0.1ms` | `0.2ms` |
+| collapsed pane | `0.02ms` | `0.1ms` | `0.1ms` |
 
 Artifact:
 
 ```text
-artifacts/performance/benchmark-2026-07-04T22-30-36.102Z.json
+artifacts/performance/benchmark-2026-07-05T01-07-29.557Z.json
 ```
 
 Environment:
@@ -193,8 +193,11 @@ Artifacts live under `artifacts/browser-qa/` and are ignored by Git by default.
 
 Known residual risks before release:
 
-- GitHub tag install cannot be fully verified until `origin` points at
-  `u29dc/cfg` and the tag exists remotely.
+- GitHub Actions is currently disabled for `u29dc/cfg` by repository or
+  organization policy, so remote CI cannot yet prove the pushed commit or tag.
+- Clean install from `github:u29dc/cfg#v1.0.0` still needs final verification in
+  the intended private-repository auth path before the release can be called
+  complete.
 - `_www_template` integration must still verify real host-loop behavior in the
   downstream runtime.
 - Clawpatch and final subagent review may identify additional performance or
