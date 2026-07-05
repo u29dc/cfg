@@ -146,6 +146,53 @@ The expected `_www_template` integration shape is:
 5. Feed the existing RAF loop into the external scheduler lifecycle.
 6. Dispose on hot reload or route/runtime teardown.
 
+### `_www_template` Dry-Run Evidence
+
+The 2026-07-05 disposable integration dry run used a clean copy under
+`.tmp/www-template-cfg-dryrun` and installed the local `cfg` release-candidate
+tarball:
+
+```sh
+bun add /Users/han/Git/cfg/.tmp/package-smoke/pack/cfg-1.0.0.tgz
+```
+
+The dry run replaced the Tweakpane dev pane with `cfg`, imported
+`cfg/styles.css`, and wired `cfg` into the existing `App` RAF loop with
+`createCfg({ scheduler: "external" })`.
+
+Files that would need downstream changes:
+
+- `package.json` and `bun.lock` for the `cfg` dependency;
+- `src/app/dev/pane.ts` for the controls, settings actions, and diagnostics
+  panes;
+- `src/app/dev/dev.ts` for `beginFrame`, `endFrame`, `renderFrame`, and
+  profiler forwarding;
+- `src/app/core/app.ts` for a module-update profiling hook;
+- `src/app/app.ts` for central loop wiring.
+
+The dry run passed:
+
+```sh
+bun run util:check
+```
+
+Browser QA opened `/?controls=1` and `/about/?controls=1` in Chromium. It
+verified a clean console, strict CSP response headers, visible `runtime` and
+`telemetry` panes, external scheduler mode, nonblank FPS/frame/profiler
+canvases, theme propagation from the site theme control into `cfg`, settings
+mutation, and profiler labels from real runtime phases including
+`performance.begin`, `device`, and `theme`.
+
+Screenshot evidence:
+
+```text
+artifacts/browser-qa/www-template-cfg-dryrun-2026-07-05.png
+```
+
+The source `_www_template` checkout was left clean. Final downstream
+installation still needs to be repeated from the final GitHub tag once private
+tag installation and CI are unblocked.
+
 ## Avoiding Duplicate RAF Loops
 
 Adapters should default to:

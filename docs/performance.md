@@ -198,7 +198,7 @@ Known residual risks before release:
 - Clean install from `github:u29dc/cfg#v1.0.0` still needs final verification in
   the intended private-repository auth path before the release can be called
   complete.
-- `_www_template` integration must still verify real host-loop behavior in the
-  downstream runtime.
+- `_www_template` integration passed from a disposable local tarball dry run;
+  repeat it from the final GitHub tag once private tag installation is unblocked.
 - Clawpatch and final subagent review may identify additional performance or
   architecture fixes.
