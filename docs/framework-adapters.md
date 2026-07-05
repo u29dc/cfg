@@ -190,7 +190,7 @@ artifacts/browser-qa/www-template-cfg-dryrun-2026-07-05.png
 ```
 
 The source `_www_template` checkout was left clean. Final downstream
-installation should be repeated from `v1.0.2` after the patch tag is pushed and
+installation should be repeated from `v1.0.3` after the patch tag is pushed and
 GitHub CI has run.
 
 ## Avoiding Duplicate RAF Loops
