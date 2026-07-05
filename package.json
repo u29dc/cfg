@@ -1,6 +1,6 @@
 {
 	"name": "cfg",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"type": "module",
 	"private": false,
 	"workspaces": [
@@ -40,6 +40,7 @@
 		"test:browser": "playwright test",
 		"test:package": "bun scripts/smoke.ts",
 		"util:format": "oxfmt --write .",
+		"util:dist": "bun scripts/dist.ts",
 		"util:lint": "oxlint . --type-aware --deny-warnings",
 		"util:types": "bunx tsgo --noEmit",
 		"util:test": "bun test",

@@ -33,7 +33,7 @@ if (!build.success) {
 
 await minifyJavaScript('dist/index.js');
 await minifyCss('dist/styles.css', await readCss('packages/vanilla/src/styles/cfg.css'));
-await writeFile('dist/styles.css.d.ts', 'declare const stylesheet: string;\nexport default stylesheet;\n');
+await writeFile('dist/styles.css.d.ts', 'export {};\n');
 await run('bunx', ['tsc', '-p', 'tsconfig.build.json']);
 const types = await readFile('dist/types/core/src/types.d.ts', 'utf8');
 await writeFile(

@@ -987,7 +987,6 @@
 		max-block-size: calc(100dvh - 16px);
 		overflow: auto;
 		overscroll-behavior: contain;
-		pointer-events: auto;
 	}
 
 	.cfg-pane {

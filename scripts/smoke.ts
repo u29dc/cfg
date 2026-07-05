@@ -35,7 +35,8 @@ writeFileSync(
 				moduleResolution: 'Bundler',
 				strict: true,
 				noEmit: true,
-				skipLibCheck: true,
+				skipLibCheck: false,
+				types: [],
 				verbatimModuleSyntax: true,
 			},
 			include: ['index.ts'],
@@ -49,21 +50,19 @@ writeFileSync(
 	[
 		"import { createCfg, type Cfg, type Control, type ThemeMode, theme } from 'cfg';",
 		"import 'cfg/styles.css';",
-		"import stylesheet from 'cfg/styles.css';",
 		'',
 		"const mode: ThemeMode = 'system';",
 		'const factory: (options?: Parameters<typeof createCfg>[0]) => Cfg = createCfg;',
 		'const palette: string = theme.palette.blue;',
-		'const css: string = stylesheet;',
 		'const controls: Control<unknown>[] = [];',
 		'',
 		'void mode;',
 		'void factory;',
 		'void palette;',
-		'void css;',
 		'void controls;',
 	].join('\n'),
 );
+writeFileSync(join(consumer, 'client.ts'), ["import { createCfg } from 'cfg';", "import 'cfg/styles.css';", '', 'void createCfg;'].join('\n'));
 writeFileSync(
 	join(consumer, 'ssr.mjs'),
 	[
@@ -85,6 +84,7 @@ writeFileSync(
 
 run(consumer, 'bun', ['add', archive]);
 run(root, 'bunx', ['tsgo', '--noEmit', '-p', join(consumer, 'tsconfig.json')]);
+run(consumer, 'bun', ['build', 'client.ts', '--outdir', join(consumer, 'bundle'), '--target', 'browser']);
 run(consumer, 'bun', ['ssr.mjs']);
 
 const installed = readdirSync(join(consumer, 'node_modules', 'cfg', 'dist'));

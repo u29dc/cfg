@@ -6,7 +6,7 @@ export class Ring {
 	count = 0;
 
 	constructor(size: number) {
-		this.data = new Float32Array(Math.max(1, Math.floor(size)));
+		this.data = new Float32Array(normalizeSize(size));
 	}
 
 	push(value: number) {
@@ -35,6 +35,10 @@ export class Ring {
 		}
 		return this.data[(this.index - 1 + this.data.length) % this.data.length] ?? 0;
 	}
+}
+
+function normalizeSize(size: number) {
+	return Math.max(1, Math.floor(Number.isFinite(size) ? size : 1));
 }
 
 export class Series {

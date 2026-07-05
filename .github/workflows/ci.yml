@@ -15,7 +15,7 @@ jobs:
             - run: bun install --frozen-lockfile
             - run: bunx playwright install --with-deps chromium
             - run: bun run util:check
-            - run: git diff --exit-code -- dist
+            - run: bun run util:dist
             - run: bun run test:browser
             - uses: actions/upload-artifact@v4
               if: startsWith(github.ref, 'refs/tags/v')

@@ -525,8 +525,67 @@ test('palette, settings actions, bounded logs, and disposal work', async ({ page
 	expect(lines[0]).toBe('line 5');
 	expect(lines.at(-1)).toBe('line 24');
 
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo) {
+			throw new Error('cfg demo probe missing');
+		}
+		const exposed = demo.logLines() as string[];
+		exposed.push('mutated externally');
+	});
+	const afterExternalMutation = await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo) {
+			throw new Error('cfg demo probe missing');
+		}
+		return demo.logLines();
+	});
+	expect(afterExternalMutation).not.toContain('mutated externally');
+
 	await page.evaluate(() => (window as DemoWindow).__cfgDemo?.dispose());
 	await expect(page.locator('.cfg-root')).toBeHidden();
+});
+
+test('xy pad honors per-axis ranges in fields and pointer input', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => {
+		const demo = (window as DemoWindow).__cfgDemo;
+		if (!demo?.createCfg) {
+			throw new Error('cfg demo factory missing');
+		}
+		const root = document.createElement('div');
+		root.id = 'scratch-axis-root';
+		document.body.append(root);
+		const cfg = demo.createCfg({ root, scheduler: 'external' });
+		const pane = cfg.pane({ id: 'scratch-axis-pane', title: 'Axis' });
+		const state = { point: { x: 50, y: 0 } };
+		pane.xyPad(state, 'point', {
+			id: 'scratch-axis-pad',
+			label: 'Pad',
+			axes: [
+				{ min: 0, max: 100, step: 10 },
+				{ min: -50, max: 50, step: 5 },
+			],
+		});
+		(window as ScratchWindow).__cfgAxisScratch = {
+			cfg,
+			point: () => state.point,
+		};
+	});
+
+	await page.locator('[data-cfg-id="scratch-axis-pad"] .cfg-input--axis').nth(0).fill('200');
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgAxisScratch?.point().x)).toBe(100);
+	await page.locator('[data-cfg-id="scratch-axis-pad"] .cfg-input--axis').nth(1).fill('-100');
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgAxisScratch?.point().y)).toBe(-50);
+
+	const canvas = page.locator('[data-cfg-id="scratch-axis-pad"] canvas');
+	const box = await canvas.boundingBox();
+	if (!box) {
+		throw new Error('axis pad bounds missing');
+	}
+	await page.mouse.click(box.x + box.width - 1, box.y + 1);
+	await expect.poll(() => page.evaluate(() => (window as ScratchWindow).__cfgAxisScratch?.point())).toEqual({ x: 100, y: 50 });
+	await page.evaluate(() => (window as ScratchWindow).__cfgAxisScratch?.cfg.dispose());
 });
 
 test('pane collapse removes body from layout and expands back', async ({ page }) => {
@@ -593,6 +652,27 @@ test('compact typography is preserved at mobile widths', async ({ page }) => {
 	expect(sizes).toEqual({ root: '11px', input: '12px', button: '12px' });
 	await expect(page.locator('.cfg-root')).toHaveCSS('overflow-y', 'auto');
 	await expect(page.locator('[data-cfg-id="runtime"]')).toHaveCSS('scrollbar-width', 'none');
+});
+
+test('mobile root does not block host page clicks outside panes', async ({ page }) => {
+	await page.setViewportSize({ width: 430, height: 932 });
+	await page.goto('/');
+	await page.evaluate(() => {
+		const button = document.createElement('button');
+		button.id = 'host-click-through';
+		button.textContent = 'Host';
+		button.style.position = 'fixed';
+		button.style.left = '16px';
+		button.style.bottom = '16px';
+		button.style.zIndex = '1';
+		button.addEventListener('click', () => {
+			document.body.dataset['hostClicks'] = String(Number(document.body.dataset['hostClicks'] ?? '0') + 1);
+		});
+		document.body.append(button);
+	});
+
+	await page.mouse.click(24, 908);
+	await expect.poll(() => page.evaluate(() => document.body.dataset['hostClicks'])).toBe('1');
 });
 
 test('touch mobile layout preserves button labels', async ({ browser }) => {
@@ -755,7 +835,11 @@ type ScratchPane = {
 	interval: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
 	segmented: (target: Record<string, unknown>, key: string, options: { id: string; label: string; options: { label: string; value: string; disabled?: boolean }[] }) => ScratchControl;
 	tab: (options: { id: string; label: string; tabs: { label: string; value: string; disabled?: boolean }[]; initial: string }) => ScratchTab;
-	xyPad: (target: Record<string, unknown>, key: string, options: { id: string; label: string; min?: number; max?: number; step?: number }) => ScratchControl;
+	xyPad: (
+		target: Record<string, unknown>,
+		key: string,
+		options: { id: string; label: string; min?: number; max?: number; step?: number; axes?: readonly { min?: number; max?: number; step?: number }[] },
+	) => ScratchControl;
 };
 
 type ScratchControl = {
@@ -772,6 +856,10 @@ type ScratchTab = ScratchControl & {
 };
 
 type ScratchWindow = Window & {
+	__cfgAxisScratch?: {
+		cfg: ScratchCfg;
+		point: () => { x: number; y: number };
+	};
 	__cfgColorScratch?: {
 		cfg: ScratchCfg;
 	};

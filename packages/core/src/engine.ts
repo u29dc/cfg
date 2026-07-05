@@ -15,7 +15,8 @@ export class Engine {
 	readonly #renderables = new Set<FrameRenderable>();
 	readonly #samplers = new Set<FrameSampler>();
 	readonly #profilers = new Set<FrameProfiler>();
-	#rafId = 0;
+	#rafId: number | undefined;
+	#run = 0;
 	#running = false;
 	#disposed = false;
 
@@ -102,13 +103,17 @@ export class Engine {
 			return;
 		}
 		this.#running = true;
+		const run = (this.#run += 1);
 		const tick = (time: number) => {
+			if (run !== this.#run) {
+				return;
+			}
 			if (!this.#running || this.#disposed) {
-				this.#rafId = 0;
+				this.#rafId = undefined;
 				return;
 			}
 			try {
-				this.#rafId = 0;
+				this.#rafId = undefined;
 				this.beginFrame(time);
 				if (!this.#active()) {
 					return;
@@ -123,7 +128,8 @@ export class Engine {
 				}
 			} catch (error) {
 				this.#running = false;
-				this.#rafId = 0;
+				this.#run += 1;
+				this.#rafId = undefined;
 				throw error;
 			}
 		};
@@ -131,16 +137,18 @@ export class Engine {
 			this.#rafId = this.#raf.request(tick);
 		} catch (error) {
 			this.#running = false;
-			this.#rafId = 0;
+			this.#run += 1;
+			this.#rafId = undefined;
 			throw error;
 		}
 	}
 
 	stop() {
 		this.#running = false;
-		if (this.#rafId !== 0) {
+		this.#run += 1;
+		if (this.#rafId !== undefined) {
 			this.#raf.cancel(this.#rafId);
-			this.#rafId = 0;
+			this.#rafId = undefined;
 		}
 	}
 

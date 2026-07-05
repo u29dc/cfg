@@ -77,21 +77,7 @@ export class VectorControl<T extends Record<string, unknown>> extends Base<unkno
 	}
 
 	#axisOptions(axisName: string): NumberOptions {
-		const axisOptions = this.#options.axes?.[this.#axes.indexOf(axisName)];
-		const result: NumberOptions = {};
-		const min = axisOptions?.min ?? this.#options.min;
-		const max = axisOptions?.max ?? this.#options.max;
-		const step = axisOptions?.step ?? this.#options.step;
-		if (min !== undefined) {
-			result.min = min;
-		}
-		if (max !== undefined) {
-			result.max = max;
-		}
-		if (step !== undefined) {
-			result.step = step;
-		}
-		return result;
+		return vectorAxisOptions(this.#options, this.#axes.indexOf(axisName));
 	}
 }
 
@@ -151,7 +137,7 @@ export class XyPad<T extends Record<string, unknown>> extends Base<Vector2> {
 	}
 
 	#setField(axisName: 'x' | 'y', raw: string) {
-		const value = { ...this.get(), [axisName]: number(raw, this.#options) };
+		const value = { ...this.get(), [axisName]: number(raw, this.#axisOptions(axisName)) };
 		this.#binding.set(value);
 		this.render();
 		this.emit('input');
@@ -165,14 +151,14 @@ export class XyPad<T extends Record<string, unknown>> extends Base<Vector2> {
 		this.#canvas.setPointerCapture(event.pointerId);
 		const bounds = measure(this.#canvas);
 		const update = (pointer: PointerEvent) => {
-			const min = this.#options.min ?? -1;
-			const max = this.#options.max ?? 1;
+			const xAxis = padAxis(this.#options, 0);
+			const yAxis = padAxis(this.#options, 1);
 			const x = clamp((pointer.clientX - bounds.left) / bounds.width, 0, 1);
 			const yRaw = clamp((pointer.clientY - bounds.top) / bounds.height, 0, 1);
 			const y = this.#options.invertY ? yRaw : 1 - yRaw;
 			this.#binding.set({
-				x: snap(min + x * (max - min), this.#options.step),
-				y: snap(min + y * (max - min), this.#options.step),
+				x: valueFromRatio(x, xAxis),
+				y: valueFromRatio(y, yAxis),
 			});
 			this.render();
 			this.emit('input');
@@ -205,6 +191,10 @@ export class XyPad<T extends Record<string, unknown>> extends Base<Vector2> {
 		this.#canvas.addEventListener('pointercancel', cancel, { once: true });
 		this.#canvas.addEventListener('lostpointercapture', cancel, { once: true });
 		update(event);
+	}
+
+	#axisOptions(axisName: 'x' | 'y') {
+		return vectorAxisOptions(this.#options, axisName === 'x' ? 0 : 1);
 	}
 }
 
@@ -453,10 +443,10 @@ function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: 
 	}
 	const { width, height, scale } = size;
 	const colors = canvasTheme(ctx.canvas);
-	const min = options.min ?? -1;
-	const max = options.max ?? 1;
-	const x = ((value.x - min) / (max - min)) * width;
-	const yRatio = (value.y - min) / (max - min);
+	const xAxis = padAxis(options, 0);
+	const yAxis = padAxis(options, 1);
+	const x = ratioFromValue(value.x, xAxis) * width;
+	const yRatio = ratioFromValue(value.y, yAxis);
 	const y = (options.invertY ? yRatio : 1 - yRatio) * height;
 	ctx.clearRect(0, 0, width, height);
 	ctx.fillStyle = colors.panel;
@@ -473,6 +463,57 @@ function drawPad(ctx: CanvasRenderingContext2D | null, value: Vector2, options: 
 	ctx.beginPath();
 	ctx.arc(clamp(x, 0, width), clamp(y, 0, height), theme.metrics.bezierHandleRadius * scale, 0, Math.PI * 2);
 	ctx.fill();
+}
+
+function vectorAxisOptions(options: VectorOptions, axisIndex: number): NumberOptions {
+	const axisOptions = options.axes?.[axisIndex];
+	const result: NumberOptions = {};
+	const min = axisOptions?.min ?? options.min;
+	const max = axisOptions?.max ?? options.max;
+	const step = axisOptions?.step ?? options.step;
+	if (min !== undefined) {
+		result.min = min;
+	}
+	if (max !== undefined) {
+		result.max = max;
+	}
+	if (step !== undefined) {
+		result.step = step;
+	}
+	return result;
+}
+
+interface PadAxis {
+	min: number;
+	max: number;
+	step?: number;
+}
+
+function padAxis(options: VectorOptions, axisIndex: number): PadAxis {
+	const axisOptions = vectorAxisOptions(options, axisIndex);
+	const min = finiteNumber(axisOptions.min, -1);
+	const max = finiteNumber(axisOptions.max, 1);
+	const result = min <= max ? { min, max } : { min: max, max: min };
+	if (axisOptions.step !== undefined) {
+		return { ...result, step: axisOptions.step };
+	}
+	return result;
+}
+
+function finiteNumber(value: number | undefined, fallback: number) {
+	return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function valueFromRatio(ratioValue: number, bounds: PadAxis) {
+	return snap(bounds.min + clamp(ratioValue, 0, 1) * (bounds.max - bounds.min), bounds.step);
+}
+
+function ratioFromValue(value: number, bounds: PadAxis) {
+	const span = bounds.max - bounds.min;
+	if (!Number.isFinite(value) || span <= 0) {
+		return 0;
+	}
+	return clamp((value - bounds.min) / span, 0, 1);
 }
 
 function drawBezier(ctx: CanvasRenderingContext2D | null, value: BezierTuple, preview: number) {

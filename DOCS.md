@@ -26,13 +26,13 @@ The repository uses Bun workspaces internally:
 From the GitHub tag:
 
 ```sh
-bun add github:u29dc/cfg#v1.0.6
+bun add github:u29dc/cfg#v1.0.7
 ```
 
 If private-repo auth requires SSH:
 
 ```sh
-bun add git+ssh://git@github.com/u29dc/cfg.git#v1.0.6
+bun add git+ssh://git@github.com/u29dc/cfg.git#v1.0.7
 ```
 
 ## Quick Start

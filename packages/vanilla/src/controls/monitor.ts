@@ -75,7 +75,7 @@ export class Log extends Base<readonly string[]> implements LogMonitor {
 	}
 
 	get() {
-		return this.#lines;
+		return this.#lines.slice();
 	}
 
 	set(value: readonly string[]) {

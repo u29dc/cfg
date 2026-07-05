@@ -73,6 +73,49 @@ describe('Engine', () => {
 		expect(cancelled).toEqual([rafId]);
 	});
 
+	test('internal mode cancels RAF handle zero', () => {
+		const cancelled: number[] = [];
+		const engine = new Engine({
+			scheduler: 'internal',
+			raf: () => 0,
+			cancelRaf: (id) => cancelled.push(id),
+		});
+
+		engine.start();
+		engine.stop();
+
+		expect(cancelled).toEqual([0]);
+	});
+
+	test('internal mode ignores stale callbacks after restart', () => {
+		const callbacks: ((time: number) => void)[] = [];
+		const cancelled: number[] = [];
+		let nextId = 0;
+		const engine = new Engine({
+			scheduler: 'internal',
+			clock: () => 10,
+			raf: (next) => {
+				callbacks.push(next);
+				const id = nextId;
+				nextId += 1;
+				return id;
+			},
+			cancelRaf: (id) => cancelled.push(id),
+		});
+
+		engine.start();
+		const stale = callbacks[0];
+		engine.stop();
+		engine.start();
+		stale?.(16);
+
+		expect(cancelled).toEqual([0]);
+		expect(callbacks).toHaveLength(2);
+
+		callbacks[1]?.(32);
+		expect(callbacks).toHaveLength(3);
+	});
+
 	test('internal mode does not reschedule when stopped during a frame', () => {
 		const callbacks: ((time: number) => void)[] = [];
 		const cancelled: number[] = [];
@@ -246,6 +289,19 @@ describe('Settings', () => {
 		expect(Object.hasOwn(snapshot.values, '__proto__')).toBe(true);
 		expect(snapshot.values['__proto__']).toBe('safe');
 	});
+
+	test('ignores stale remove calls for replaced settings', () => {
+		const settings = new Settings();
+		const first = runtimeItem({ id: 'speed', get: () => 1 });
+		const second = runtimeItem({ id: 'speed', get: () => 2 });
+
+		settings.add(first);
+		settings.remove(first);
+		settings.add(second);
+		settings.remove(first);
+
+		expect(settings.export().values['speed']).toBe(2);
+	});
 });
 
 describe('Ids', () => {
@@ -280,6 +336,18 @@ describe('Ring', () => {
 		expect(ring.latest()).toBe(4);
 		expect([ring.at(0), ring.at(1), ring.at(2)]).toEqual([2, 3, 4]);
 		expect(ring.data).toBeInstanceOf(Float32Array);
+	});
+
+	test('normalizes invalid history sizes to a usable one-sample ring', () => {
+		for (const size of [0, -4, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+			const ring = new Ring(size);
+			ring.push(42);
+
+			expect(ring.data.length).toBe(1);
+			expect(ring.count).toBe(1);
+			expect(ring.index).toBe(0);
+			expect(ring.latest()).toBe(42);
+		}
 	});
 });
 

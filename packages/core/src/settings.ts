@@ -14,7 +14,9 @@ export class Settings {
 	}
 
 	remove(setting: Setting) {
-		this.#items.delete(setting.id);
+		if (this.#items.get(setting.id) === setting) {
+			this.#items.delete(setting.id);
+		}
 	}
 
 	export(): SettingsSnapshot {
