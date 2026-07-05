@@ -189,16 +189,26 @@ Recent browser QA captured:
 
 Artifacts live under `artifacts/browser-qa/` and are ignored by Git by default.
 
+## Review Evidence
+
+The read-only Clawpatch pass produced 11 findings under `.clawpatch/`. Current
+finding status is 9 fixed and 2 false-positive. A fresh subagent sanity check on
+2026-07-05 found no remaining important Clawpatch finding that still looked
+unfixed, and traced the fixes to current source and regression tests for
+scheduler lifecycle, profiler history clamping, finite graph samples, pointer
+cancel cleanup, interval change events, disabled tabs, disposed panes, and
+package export smoke coverage.
+
 ## Residual Risk
 
 Known residual risks before release:
 
 - GitHub Actions is currently disabled for `u29dc/cfg` by repository or
   organization policy, so remote CI cannot yet prove the pushed commit or tag.
-- Clean install from `github:u29dc/cfg#v1.0.0` still needs final verification in
-  the intended private-repository auth path before the release can be called
-  complete.
+- The published `v1.0.0` tag predates the latest documentation and evidence
+  commits; a final patch tag should not be created until GitHub Actions can run.
+- Clean install from `github:u29dc/cfg#v1.0.0` and the SSH fallback both need
+  final verification in the intended private-repository auth path before release
+  completion.
 - `_www_template` integration passed from a disposable local tarball dry run;
   repeat it from the final GitHub tag once private tag installation is unblocked.
-- Clawpatch and final subagent review may identify additional performance or
-  architecture fixes.
